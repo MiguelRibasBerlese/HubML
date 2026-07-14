@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && node dist/main.js",
+    "startCommand": "npx prisma migrate deploy; echo MIGEXIT=$?; node dist/main.js 2>&1",
     "restartPolicyType": "ON_FAILURE"
   }
 }
