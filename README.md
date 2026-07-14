@@ -85,6 +85,27 @@ o processamento separado da API:
 npm run worker        # ou worker:dev
 ```
 
+## No ar (deploy atual)
+
+| Peça | URL | Estado |
+| --- | --- | --- |
+| Backend (Railway) | https://hubml-api-production.up.railway.app | ✅ público (`/health` → 200) |
+| Banco (Railway Postgres) | interno (`postgres.railway.internal`) | ✅ migrations aplicadas |
+| Frontend (Vercel) | https://web-99hjxhc9g-miguel-ribas-projects.vercel.app | ⚠️ protegido por Vercel Authentication |
+
+O painel chama o backend e pede a `ADMIN_API_KEY` (definida no Railway) — a chave
+fica só no navegador (localStorage), nunca no bundle. Rotas de escrita exigem o
+header `x-admin-key`; `/health`, `/webhooks/ml` e `/auth/ml/*` são abertas.
+
+**Para deixar o painel público** (hoje ele pede login da Vercel): desligue a proteção
+em Vercel → projeto `web` → Settings → Deployment Protection → Vercel Authentication → **Disabled**,
+ou rode `vercel project protection disable --sso --yes` no diretório `web/`.
+
+**Faltando para operar de verdade:** trocar no Railway `ML_APP_ID`, `ML_CLIENT_SECRET`
+(hoje `REPLACE_ME`) pelos valores do seu app no DevCenter, e cadastrar a `redirect_uri`
+`https://hubml-api-production.up.railway.app/auth/ml/callback` no app do ML. Depois
+abra `.../auth/ml/start` para autorizar a conta.
+
 ## Deploy (Railway)
 
 O `Dockerfile` + `railway.json` já estão prontos. No Railway:
