@@ -1,7 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { JobQueue } from '../jobs/job-queue.service';
+import { AdminKeyGuard } from './admin-key.guard';
 
-// Rotas administrativas mínimas: disparam jobs. Sem UI (M3/M4/M5).
+// Rotas administrativas mínimas: disparam jobs. Sem UI (M3/M4/M5). Protegidas por chave.
+@UseGuards(AdminKeyGuard)
 @Controller('admin')
 export class AdminController {
   constructor(private readonly jobs: JobQueue) {}

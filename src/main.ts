@@ -10,6 +10,13 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: false });
   app.enableShutdownHooks();
 
+  // CORS para o frontend (Vercel). '*' + header x-admin-key: a chave é a defesa real.
+  app.enableCors({
+    origin: cfg.CORS_ORIGIN === '*' ? true : cfg.CORS_ORIGIN.split(','),
+    allowedHeaders: ['Content-Type', 'x-admin-key'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  });
+
   // API e worker no mesmo processo por padrão (single-seller, volume baixo).
   // Para separar, rode `npm run worker` (worker.main.ts) e desabilite aqui.
   app.get(Worker).start();

@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CatalogService, type CreateProductInput } from './catalog.service';
 import { StockService } from './stock.service';
+import { AdminKeyGuard } from '../../http/admin-key.guard';
 
-// API REST mínima (sem UI) — M3.
+// API REST mínima (sem UI) — M3. Protegida por chave admin (operador único).
+@UseGuards(AdminKeyGuard)
 @Controller('catalog')
 export class CatalogController {
   constructor(

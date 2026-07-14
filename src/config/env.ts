@@ -15,6 +15,12 @@ const schema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
 
+  // Origem permitida no CORS (frontend). '*' libera todas (a chave admin é a defesa real).
+  CORS_ORIGIN: z.string().default('*'),
+  // Chave que protege rotas de escrita (admin/catalog). Em produção é obrigatória:
+  // vazia => guard nega tudo (fail-closed). Em dev, vazia libera (conveniência).
+  ADMIN_API_KEY: z.string().default(''),
+
   ML_API_BASE_URL: z.string().url().default('https://api.mercadolibre.com'),
   ML_AUTH_BASE_URL: z.string().url().default('https://auth.mercadolivre.com.br'),
 
