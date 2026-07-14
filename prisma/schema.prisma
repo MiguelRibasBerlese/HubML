@@ -1,0 +1,231 @@
+// Hub Mercado Livre — schema completo (§5 do PLAN.md).
+// Convenções: PK uuid, dinheiro em centavos (Int), timestamptz, created/updated em tudo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Catálogo ────────────────────────────────────────────────────────────────
+
+model Product {
+  id            String    @id @default(uuid()) @db.Uuid
+  title         String    // <= 60 chars validado na publicação, não no insert
+  description   String    @default("")
+  brand         String?
+  mlCategoryId  String?   @map("ml_category_id") // ex MLB31447
+  gender        String?
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  variations    Variation[]
+  listings      Listing[]
+
+  @@map("product")
+}
+
+model Variation {
+  id               String   @id @default(uuid()) @db.Uuid
+  productId        String   @map("product_id") @db.Uuid
+  sku              String   @unique
+  color            String?
+  size             String?
+  attributes       Json     @default("{}") // atributos extras da variação
+  gtin             String?
+  gtinExemptReason String?  @map("gtin_exempt_reason")
+  priceCents       Int      @map("price_cents")
+  // stock_on_hand: fonte da verdade. CHECK >= 0 aplicado via migration (última defesa anti-oversell).
+  stockOnHand      Int      @default(0) @map("stock_on_hand")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  product          Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  movements        StockMovement[]
+  listingVariation ListingVariation[]
+  orderItems       OrderItem[]
+  listings         Listing[]
+
+  @@index([productId])
+  @@map("variation")
+}
+
+enum StockReason {
+  sale
+  cancel
+  manual
+  reconciliation
+  initial
+}
+
+model StockMovement {
+  id           String      @id @default(uuid()) @db.Uuid
+  variationId  String      @map("variation_id") @db.Uuid
+  delta        Int         // negativo = saída
+  reason       StockReason
+  orderId      String?     @map("order_id") @db.Uuid
+  balanceAfter Int         @map("balance_after")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  variation    Variation   @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  @@index([variationId])
+  @@map("stock_movement")
+}
+
+// ─── Vínculo hub ↔ anúncio ML (idempotência de publicação) ────────────────────
+
+enum ListingStatus {
+  pending
+  active
+  paused
+  closed
+  error
+}
+
+model Listing {
+  id               String        @id @default(uuid()) @db.Uuid
+  productId        String        @map("product_id") @db.Uuid
+  variationId      String?       @map("variation_id") @db.Uuid // preenchido no modelo UP
+  mlItemId         String?       @unique @map("ml_item_id")     // MLB...; null = pendente
+  mlUserProductId  String?       @map("ml_user_product_id")     // MLBU... (modelo UP)
+  mlFamilyId       String?       @map("ml_family_id")
+  familyName       String?       @map("family_name")
+  status           ListingStatus @default(pending)
+  sizeGridId       String?       @map("size_grid_id")
+  lastError        Json?         @map("last_error")
+  lastSyncedAt     DateTime?     @map("last_synced_at") @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  product          Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variation        Variation?    @relation(fields: [variationId], references: [id], onDelete: SetNull)
+  listingVariations ListingVariation[]
+
+  @@index([productId])
+  @@map("listing")
+}
+
+// item legado multi-variação: variation_id ↔ ml_variation_id
+model ListingVariation {
+  id            String    @id @default(uuid()) @db.Uuid
+  listingId     String    @map("listing_id") @db.Uuid
+  variationId   String    @map("variation_id") @db.Uuid
+  mlVariationId String    @map("ml_variation_id")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  listing       Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  variation     Variation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, variationId])
+  @@map("listing_variation")
+}
+
+// ─── Pedidos ─────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  received
+  stock_reserved
+  invoiced
+  labeled
+  shipped
+  error
+}
+
+model Order {
+  id           String      @id @default(uuid()) @db.Uuid
+  mlOrderId    String      @unique @map("ml_order_id") // idempotência
+  status       OrderStatus @default(received)
+  mlShipmentId String?     @map("ml_shipment_id")
+  nfeRef       String?     @map("nfe_ref")
+  nfeStatus    String?     @map("nfe_status")
+  labelUrl     String?     @map("label_url")
+  totalCents   Int         @map("total_cents")
+  raw          Json        // payload completo do ML
+  lastError    Json?       @map("last_error")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  items        OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id             String    @id @default(uuid()) @db.Uuid
+  orderId        String    @map("order_id") @db.Uuid
+  variationId    String?   @map("variation_id") @db.Uuid // match por SKU/ml_variation_id
+  qty            Int
+  unitPriceCents Int       @map("unit_price_cents")
+
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variation      Variation? @relation(fields: [variationId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_item")
+}
+
+// ─── Credenciais ML (linha única) ────────────────────────────────────────────
+
+model MlCredentials {
+  id           Int      @id @default(1) // linha única; sempre id=1
+  accessToken  String   @map("access_token")
+  refreshToken String   @map("refresh_token")
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+  mlUserId     String   @map("ml_user_id")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("ml_credentials")
+}
+
+// ─── Inbox de webhooks ───────────────────────────────────────────────────────
+
+enum WebhookStatus {
+  pending
+  done
+  failed
+}
+
+model WebhookEvent {
+  id          String        @id @default(uuid()) @db.Uuid
+  topic       String
+  resource    String
+  payload     Json
+  dedupeKey   String        @unique @map("dedupe_key") // hash(topic+resource+sent)
+  status      WebhookStatus @default(pending)
+  attempts    Int           @default(0)
+  receivedAt  DateTime      @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt DateTime?     @map("processed_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("webhook_event")
+}
+
+// ─── Fila de jobs (Postgres) ─────────────────────────────────────────────────
+
+enum JobStatus {
+  pending
+  running
+  done
+  failed
+}
+
+model Job {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String
+  payload     Json      @default("{}")
+  dedupeKey   String?   @unique @map("dedupe_key") // idempotência de enfileiramento
+  status      JobStatus @default(pending)
+  runAt       DateTime  @default(now()) @map("run_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5) @map("max_attempts")
+  lastError   Json?     @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, runAt])
+  @@map("job")
+}

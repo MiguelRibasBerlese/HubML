@@ -1,0 +1,24 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { loadEnv } from './config/env';
+import { logger } from './lib/logger';
+import { Worker } from './jobs/worker.service';
+
+async function bootstrap(): Promise<void> {
+  const cfg = loadEnv(); // valida env — falha cedo com mensagem clara
+  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  app.enableShutdownHooks();
+
+  // API e worker no mesmo processo por padrão (single-seller, volume baixo).
+  // Para separar, rode `npm run worker` (worker.main.ts) e desabilite aqui.
+  app.get(Worker).start();
+
+  await app.listen(cfg.PORT);
+  logger.info({ port: cfg.PORT }, 'HubML no ar');
+}
+
+bootstrap().catch((err) => {
+  logger.error({ err: err instanceof Error ? err.message : err }, 'falha no bootstrap');
+  process.exit(1);
+});
