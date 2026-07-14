@@ -4,7 +4,7 @@
   "deploy": {
     "startCommand": "npx prisma migrate deploy && node dist/main.js",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 100,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"
   }
 }
