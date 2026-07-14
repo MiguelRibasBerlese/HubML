@@ -21,7 +21,9 @@ async function bootstrap(): Promise<void> {
   // Para separar, rode `npm run worker` (worker.main.ts) e desabilite aqui.
   app.get(Worker).start();
 
-  await app.listen(cfg.PORT);
+  // Bind explícito em 0.0.0.0 — em container (Railway/Docker) o default pode não
+  // aceitar conexões externas e o healthcheck falha com "service unavailable".
+  await app.listen(cfg.PORT, '0.0.0.0');
   logger.info({ port: cfg.PORT }, 'HubML no ar');
 }
 
