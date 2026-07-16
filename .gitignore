@@ -7,3 +7,9 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 prisma/*.db
+
+# dados sensíveis do catálogo (Moovin/MAGNI: PRECO_CUSTO etc.) — nunca commitar
+data/
+*.xlsx
+*.xls
+*.csv

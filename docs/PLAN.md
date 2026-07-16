@@ -1,7 +1,7 @@
 # PLAN — Hub de Integração Mercado Livre
 
-> Status: **aprovado e em execução** — Fase 1 (M0–M5) implementada e testada em 2026-07-14 (29 testes verdes, 0 vulnerabilidades de produção). Pendente: validações reais contra a conta ML (M1.5/M4.6/M5.5, dependem das credenciais no `.env` + OAuth) e o gate para M6–M10. Ver `README.md` e `CLAUDE.md`.
-> Data: 2026-07-13 (plano) · 2026-07-14 (execução Fase 1) · Autor: Claude + Miguel
+> Status: **Fase 1 (M0–M5) implementada e testada em 2026-07-14** (29 testes verdes, 0 vulnerabilidades de produção). **2026-07-16: correção de rumo (ver §11)** — a decisão D4 estava errada; a origem real do catálogo é a Moovin, não a conta ML. Plano de replanejamento em §11, aguardando OK do Miguel antes de codar. Ver `README.md` e `CLAUDE.md`.
+> Data: 2026-07-13 (plano) · 2026-07-14 (execução Fase 1) · 2026-07-16 (correção de rumo, §11) · Autor: Claude + Miguel
 
 ---
 
@@ -236,7 +236,7 @@ Cada milestone é pequeno, testável e termina com suite verde. **Fase 1 = M0–
 | M1 | Auth ML | fluxo authorization-code (rota local de callback), token store, refresh automático com lock, ⚠️ re-verificação da doc de OAuth | testes unit (rotação, concorrência simulada) + troca de token real contra a API |
 | M2 | Cliente ML | wrapper HTTP: retry/backoff (5xx, 429, timeout), rate limit, timeout configurável, logs com contexto, erros tipados | testes com `nock` (429→retry, 401→refresh→replay, timeout) |
 | M3 | Catálogo | CRUD mínimo product/variation via API/CLI, ledger de estoque, decremento atômico | teste de concorrência: N decrementos paralelos não furam o estoque |
-| M4 | **Import da conta ML** | varre itens da conta (search + multiget, com variações e atributos), popula product/variation/listing com `ml_item_id`; re-executável sem duplicar (upsert por `ml_item_id`/SKU); estoque/preço do ML adotados como verdade inicial | rodar contra a conta real: catálogo do hub espelha a conta; 2ª execução não duplica nada |
+| M4 | **Import da conta ML** (não-crítico desde 2026-07-16, ver §11) | varre itens da conta (search + multiget, com variações e atributos), popula product/variation/listing com `ml_item_id`; re-executável sem duplicar (upsert por `ml_item_id`/SKU); estoque/preço do ML adotados como verdade inicial | rodar contra a conta real: catálogo do hub espelha a conta; 2ª execução não duplica nada. **Implementado e testado, mas não é mais a origem do catálogo** — serve para reconciliação futura (M8) |
 | M5 | **Publicação happy path** | produto simples (1 variação default, categoria fixa informada, GTIN válido) → `POST /items` → listing ativo; idempotência (2ª chamada = PUT, não duplica) | e2e com test user do ML criando anúncio real de teste |
 | — | **GATE: fim da Fase 1 — revisão com Miguel** | | |
 | M6 | Motor de atributos | fetch/cache de atributos da categoria, validação pré-envio, GTIN inválido → erro claro ou isenção, SIZE_GRID (associar guia, `SIZE_GRID_ROW_ID` por variação) — **obrigatório: nicho é roupas/acessórios** | testes com fixtures reais de categorias de moda |
@@ -254,7 +254,7 @@ Cada milestone é pequeno, testável e termina com suite verde. **Fase 1 = M0–
 | D1 | Framework | **NestJS** + Prisma (delegado ao Claude; stack de domínio ativo do Miguel) |
 | D2 | NF-e | **REVISADA após leitura da doc (2026-07-13): usar o Faturador do próprio Mercado Livre** como caminho principal — o ML emite a NF-e por API para os modos logísticos que usam o emissor dele (Fulfillment, Coletas, Flex etc.), com notificações via tópico `invoices` e XML/DANFE para download. Zero integração externa. **Focus NFe fica como fallback** apenas se o modo de envio da conta não for coberto pelo Faturador ou se o contador exigir emissão própria. Verificar no M1/M4 qual modo logístico a conta usa. ⚠️ Pendência mantida: dados fiscais (CNPJ com IE, regras tributárias) precisam estar configurados no ML para o Faturador funcionar |
 | D3 | Conta/app ML | **Já existem** conta seller e aplicação no DevCenter (app_id + secret vão para o `.env`) |
-| D4 | Origem do catálogo | **A própria conta ML** — os anúncios existentes são importados automaticamente (fluxo 0 / M4). Import por CSV de produtos novos fica para o M10 |
+| D4 | Origem do catálogo | ~~A própria conta ML~~ **CORRIGIDA em 2026-07-16 (§11): a origem real é a Moovin** (e-commerce que recebe dados do ERP Microvix). A conta ML está vazia — publicar nela é o objetivo, não a origem. O import da conta ML (M4) é mantido para reconciliação futura mas sai do caminho crítico |
 | D5 | Nicho | **Roupas e acessórios** → SIZE_GRID obrigatório; M6 é peça central da Fase 2 |
 | D6 | Deploy/webhook | Nada provisionado ainda. Default: Railway em produção, cloudflared/ngrok em dev. Provisiona-se no M8 (primeiro milestone que precisa de webhook público) |
 | D7 | Fila | Tabela `job` no Postgres; BullMQ/Redis só se o volume provar necessidade |
@@ -341,15 +341,13 @@ Regras de execução: uma etapa por vez, na ordem; cada etapa termina com `npm t
 ### 🔒 GATE — revisão com Miguel antes da Fase 2
 Rever: formato real da conta (D8), modo logístico (define trilho A/B de NF-e), dados fiscais disponíveis, e detalhar M6–M10 no nível acima.
 
-### M6 — Motor de atributos + SIZE_GRID (grosso — detalhar no gate)
-- [ ] Fetch/cache de `categories/{id}/attributes` e ficha técnica do domínio; validação pré-envio genérica por tags (`required`, `conditional_required`)
-- [ ] GTIN: regra completa (tipos, marca 30+, `EMPTY_GTIN_REASON` com motivos da ficha)
-- [ ] Tabelas de medidas: listar existentes, criar SPECIFIC via `POST /catalog/charts`, associar `SIZE_GRID_ID`/`SIZE_GRID_ROW_ID`
-- [ ] Fixtures reais de 2–3 categorias de roupas/acessórios da conta
+### M6 — Motor de atributos + SIZE_GRID
 
-### M7 — Variações completas (grosso)
-- [ ] Publicação/atualização multi-variação no formato da conta (UP: N itens por família; legado: array variations)
-- [ ] Sincronização de mudanças de variação (adicionar/remover tamanho/cor)
+**Substituído pelo detalhamento fino em §11.6.** Resumo: descobrir via `technical_specs` se o domínio exige medidas corporais (risco em aberto, verificar ANTES de desenhar o resto); criar guia `SPECIFIC` por combinação tipo×marca via `/catalog/charts`; motor de atributos genérico por tags da ficha técnica; GTIN sempre com `EMPTY_GTIN_REASON` (confirmado pela Moovin: GTIN da origem é lixo, ver §11.3).
+
+### M7 — Variações completas
+
+**Substituído pelo detalhamento fino em §11.7.** Resumo: estender `payload-builder.ts` com `attribute_combinations` (cor/tamanho) + `SIZE_GRID_ROW_ID` por variação, persistindo em `ListingVariation.mlVariationId`. Formato depende de D8 (UP vs legado) — resolver D8 é pré-requisito.
 
 ### M8 — Sincronização contínua (grosso)
 - [ ] Endpoint público de webhook (inbox: insert + 200 imediato) + deploy Railway + túnel dev
@@ -369,3 +367,133 @@ Rever: formato real da conta (D8), modo logístico (define trilho A/B de NF-e), 
 - [ ] Import CSV de produtos novos → catálogo → fila de publicação em lote
 - [ ] Relatório de erros re-processável (CLI/endpoint)
 - [ ] Runbook de operação no README (re-autorizar OAuth, reprocessar erros, rodar reconciliação manual)
+
+---
+
+## 11. Correção de rumo (2026-07-16): Moovin é a origem real do catálogo
+
+### 11.1 Causa raiz
+
+D4 assumia que a conta ML já tinha o catálogo e o hub só precisava importá-lo (M4, direção ML → hub). Na prática a conta está vazia — o objetivo é publicar nela, não ler dela. A origem real é:
+
+```
+Microvix (ERP, Linx)  →  Moovin (e-commerce)  →  [HubML]  →  Mercado Livre
+```
+
+O Microvix é gerenciado por outro setor da Linx, sem previsão de integração — **não vamos esperar por ele**. A Moovin já entregou um export xlsx do catálogo (2.971 linhas) via suporte, e é isso que destrava o projeto agora. M4 (import da conta ML) não é apagado — fica reservado para reconciliação no M8 — mas sai do caminho crítico.
+
+### 11.2 Diagnóstico do xlsx (fato apurado, base para o desenho abaixo)
+
+Arquivo `produtos_moovin_2026-07-16T13-14-20-534Z.xlsx`, aba `Produtos`, 27 colunas. Relevantes: `ID, URN, LINK_PRODUTO, NOME, DESCRICAO, SKU, GTIN, CATEGORIA, MARCA, ATIVO, PRECO_CUSTO, PRECO_VENDA, PRECO_LISTA, ESTOQUE, IMAGENS, COR, TAMANHO, ALTURA, LARGURA, COMPRIMENTO, PESO`.
+
+- 2.971 linhas, 267 duplicatas exatas (9%) → deduplicar na importação.
+- Linhas são **variações**; agrupar por `URN` (chave estável, sem conflito de nome) dá **959 produtos** e **2.704 variações** (~3 variações/produto).
+- **GTIN: zero registros válidos.** 86% = GTIN igual ao SKU interno; 14% vazio. Confirmado pelo suporte Moovin: deixar vazio/zerado é a orientação, testado e funcional no PlaceMarket. **Todo produto publica com `EMPTY_GTIN_REASON`** (já implementado em `payload-builder.ts`).
+- **`PRECO_VENDA` está zerado em 100% das linhas — usar `PRECO_LISTA`.** Erro aqui publica o catálogo a zero.
+- Imagens: 950 URLs distintas (`storage.moovin.store`), só 10 produtos sem imagem; variações do mesmo produto compartilham URL.
+- **734 produtos (77%) exigem SIZE_GRID.** 168 são livres (bolsas, bonés, cintos, carteiras, óculos).
+- 111 combinações tipo×marca precisam de guia (maior volume: VESTIDO/FARM = 79).
+- **95 formatos de tamanho distintos, 35 inválidos, afetando 126 variações** (ver §11.4 para exemplos e o que fica em aberto).
+- `CATEGORIA` da Moovin é departamento (MASCULINO/FEMININO/INFANTIL/...), não categoria ML. Tipo real do produto só é inferível da 1ª palavra do `NOME`; gênero é inferível da `CATEGORIA`.
+
+### 11.3 Desenho: importador Moovin
+
+Mesma regra de fronteira que já existe para o ML (`src/ml/` concentra tudo que fala com o Mercado Livre) — replicar para a Moovin:
+
+```
+src/moovin/
+├── source.interface.ts   # MoovinSource + MoovinProductRow (contrato neutro)
+├── xlsx-source.ts         # implementação de hoje: lê o arquivo local
+└── api-source.ts          # implementação de amanhã: docs.moovin.app (app_id/app_secret, paginação page/size≤100, {items, total})
+src/modules/moovin-import/
+├── moovin-mapper.ts        # dedupe + agrupamento por URN + inferência tipo/gênero + normalização de tamanho
+├── size-normalizer.ts      # de-para determinístico (ver §11.4), com valor original preservado
+└── moovin-import.service.ts # upsert idempotente product/variation, análogo ao ImportService do M4
+```
+
+`MoovinImportService` depende só de `MoovinSource` (interface), nunca do formato de arquivo — trocar para a API futura é trocar a implementação injetada, sem tocar no mapper nem no service. Mesmo padrão de `MappedProduct`/`MappedVariation` do `import-mapper.ts` atual, reaproveitado por analogia (não literalmente o mesmo tipo, porque a Moovin não tem `ml_item_id`/variação legado vs UP).
+
+**Chave de identidade (schema, precisa de migration — pendente de confirmação):**
+- `product.moovin_urn text unique null` — chave de agrupamento estável da Moovin.
+- `variation.sku` já é `unique` no schema atual — **o SKU da Moovin passa a ser o SKU canônico do hub**. Isso é consistente com M4/M8: quando o hub publica no ML, envia esse mesmo SKU como `seller_custom_field`; a reconciliação por import da conta ML (M4) casa por esse campo sem colisão.
+
+Idempotência: upsert por `moovin_urn` (produto) e `sku` (variação) — rodar duas vezes não duplica, mesma prova de conclusão usada no M4.
+
+**Dependência (decidida em 2026-07-16):** `@e965/xlsx` — fork de `xlsx`/SheetJS republicado no npm, sincronizado com os patches pós-CVE-2023-30533 (a `xlsx` oficial parou em 0.18.5, vulnerável, no registro público; a correção 0.19.3+ nunca voltou a ser publicada lá). Confirmado no registro: `@e965/xlsx` existe, versão atual 0.20.3, mesma API do SheetJS. Vantagem sobre instalar via tarball da CDN oficial: fluxo `npm install` normal, versionado em `package-lock.json`, sem dependência de alcançar `cdn.sheetjs.com` no build do Railway. Só leitura (nunca escrita de planilha).
+
+**Dado sensível:** o xlsx tem preço de custo, preço de venda e estoque reais do cliente (`PRECO_CUSTO` incluso). Não vai para o Git independente do repositório ser público ou privado. `data/` inteira no `.gitignore`; caminho default `data/produtos_moovin.xlsx`, sobrescrevível por `MOOVIN_IMPORT_FILE_PATH` no `.env`.
+
+### 11.4 Desenho: normalizador de tamanho (revisado com fatos do Miguel, 2026-07-16)
+
+Fatos corrigidos (a leitura original estava parcialmente errada — cintura/comprimento e idade eram chutes, os reais são estes):
+
+| Formato | Fato apurado |
+| --- | --- |
+| `27/28, 29/30, 31/32, 33/34, 35/36` | **100% chinelo Calvin Klein infantil** — numeração dupla de calçado (um chinelo serve os dois números), não cintura/comprimento |
+| `4/6, 6/8, 8/10, 10/12, 12/14` | **Kit 2 cuecas Calvin Klein Trunk infantil** — faixa de tamanho, não idade exata |
+| `3 (P), 4 (M), 5 (G), 6 (GG)` | Lacoste (polos/sweaters) — numeração própria da marca, equivalente BR entre parênteses |
+| `P (3)` | Farm (vestidos) — ordem invertida: letra BR primeiro, número da marca entre parênteses |
+| `S (P), L (G), XS (PP)` | Levi's e Calvin Klein — notação internacional + equivalente BR |
+| `M (40), XL (43)` | Colcci, Lacoste, Levi's — letra + numeração |
+
+**Regra:** todo formato `A (B)` é sempre **duas notações do mesmo tamanho** (uma da marca, outra o equivalente), mas a ordem (qual vem fora/dentro do parêntese) varia por marca — não dá para assumir uma posição fixa. Decisão de design: `normalizeSize` **não descarta nenhuma das duas notações**. Interface proposta:
+
+```ts
+interface NormalizedSize {
+  original: string;       // valor cru da planilha, ex "P (3)"
+  brandLabel: string;     // notação da marca (o "3" da Lacoste, o "27/28" do chinelo)
+  brLabel: string;        // equivalente BR (o "P", o "PP")
+  kind: 'letter' | 'numeric-pair' | 'letter-number'; // guia qual linha do guia usar depois
+}
+```
+
+Qual dos dois campos (`brandLabel`/`brLabel`) vira o `main_attribute`/coluna principal do guia e qual vira coluna secundária **só é decidido depois do `technical_specs` real** (§11.5) — há indício de um atributo `FILTRABLE_SIZE` com lista fechada e de o guia aceitar mais de uma coluna de tamanho, mas decidir isso sem ver a ficha técnica seria chute. `normalizeSize` fica pronta e testada contra os 35 formatos reais nesta fase; o mapeamento final `NormalizedSize → row_id do guia` é responsabilidade do `size-grid.service.ts` (§11.5), não do normalizador.
+
+### 11.5 Desenho: M6 — motor de atributos + SIZE_GRID
+
+**Primeiro passo, antes de desenhar o resto: chamar `POST /domains/{DOMAIN_ID}/technical_specs?section=grids` de um domínio de vestuário real (ex. `TOPS` ou `SHIRTS`) e verificar se medidas corporais (`WAIST_CIRCUMFERENCE_FROM`, `HIP_CIRCUMFERENCE_FROM`, `FOOT_LENGTH`...) aparecem como `required`.** A MAGNI não tem esse dado e ele não pode ser inventado. Dois caminhos, dependendo do resultado:
+
+- **Se medidas NÃO são obrigatórias** (só `main_attribute` tipo "Tamanho" com valores nominais): caminho direto — criar guia `SPECIFIC` por combinação tipo×marca com as linhas = tamanhos normalizados (§11.4).
+- **Se medidas SÃO obrigatórias**: não decido sozinho o fallback. Opções a levar para o Miguel: (a) restringir o lançamento inicial a categorias sem exigência de medida corporal (ex. calçados, onde `BRAND`/`STANDARD` podem existir); (b) buscar tabela de medidas públicas por marca (risco: dado que não vem da MAGNI, precisa de aval explícito); (c) outra fonte de medida que a MAGNI tenha e eu não conheça. **Não seguir sem essa resposta.**
+
+Componentes (assumindo caminho direto):
+- `src/modules/attributes/` (novo): `technical-specs.service.ts` (fetch/cache), `size-grid.service.ts` (busca guia existente via `/catalog/charts/search` e `/catalog/charts/domains/search`; cria via `POST /catalog/charts` só se não existir; atualiza via `PUT`).
+- Schema novo (migration): tabela `size_grid_chart` com **chave única `(domain_id, brand, gender)`** — corrigido em 2026-07-16: a chave não é tipo×marca, é domínio×marca×gênero, porque o guia do ML é por domínio e o gênero é atributo do guia (a moderação pausa o anúncio quando o gênero do guia não bate com o do anúncio — exatamente o risco documentado no PLAN). Campos: `domain_id`, `brand`, `gender`, `chart_id`, `chart_type` (`BRAND`/`STANDARD`/`SPECIFIC`), `rows jsonb`. `Listing.sizeGridId` continua guardando o vínculo por anúncio; esta tabela existe para não recriar o mesmo chart repetidamente entre os produtos que compartilham domínio×marca×gênero.
+- Validação genérica por tags da ficha técnica (`required`, `conditional_required`, `main_attribute_candidate`) estendendo `publish-validator.ts`.
+- **201 não é sucesso final:** após publicar, checar o status do item depois (moderação pode pausar por incompatibilidade de gênero no guia) — job de verificação pós-publicação ou checagem síncrona com espera curta, a decidir na fase de implementação.
+
+### 11.6 Desenho: M7 — publicação multi-variação
+
+Estende `payload-builder.ts` com `buildMultiVariationPayload`: bloco `variations[]` com `attribute_combinations` (COLOR, SIZE) + `SIZE_GRID_ROW_ID` por variação. Resposta do ML traz os `variation_id`s → persistir em `ListingVariation.mlVariationId` (modelo já existe, hoje só preenchido pelo import M4).
+
+**Formato depende de D8 (ainda aberta):**
+- Se legado: 1 `POST /items` com array `variations` (caminho acima).
+- Se User Products: **desenho diferente** — cada variação é um item próprio agrupado por família; não é uma extensão de `buildMultiVariationPayload`, é um publicador novo (N `POST /items` + agrupamento por `family_name`). Não vou desenhar isso em detalhe agora porque D8 decide qual dos dois caminhos é real — resolver D8 primeiro evita construir o caminho errado.
+
+### 11.7 Dependências e mudanças de schema — aprovadas em 2026-07-16, nenhuma aplicada ainda (fica para a fase 3/4 de §11.8)
+
+1. Nova dependência: `@e965/xlsx` (fork republicado do SheetJS, patch pós-CVE-2023-30533) para ler o export da Moovin.
+2. Migration: `product.moovin_urn text unique null` + index — nullable porque produtos vindos do import da conta ML (M4) não têm URN; é a chave de idempotência do upsert do importador Moovin.
+3. Migration: nova tabela `size_grid_chart`, chave única `(domain_id, brand, gender)` + campo `chart_type` (`BRAND`/`STANDARD`/`SPECIFIC`).
+4. Nova env var: `MOOVIN_IMPORT_FILE_PATH`, default `data/produtos_moovin.xlsx` — pasta `data/` inteira no `.gitignore` (o xlsx tem `PRECO_CUSTO` e não vai para o Git, público ou privado).
+
+### 11.8 Ordem de execução (confirmada em 2026-07-16, cada fase com `npm test` verde e commit atômico)
+
+1. `data/` no `.gitignore`; `.env.example` ganha `MOOVIN_IMPORT_FILE_PATH` (default `data/produtos_moovin.xlsx`); migrations `product.moovin_urn` e `size_grid_chart` — sem lógica ainda, só a base.
+2. **Autorizar a conta ML de verdade** (trocar `REPLACE_ME` por `ML_APP_ID`/`ML_CLIENT_SECRET` reais no `.env`, rodar `/auth/ml/start`) → `GET /users/me` → resolve **D8** (registrar no `CLAUDE.md`).
+3. Adicionar `getTechnicalSpecs(domainId)` a `MlApi` (método novo, mínimo) e chamar `POST /domains/{DOMAIN_ID}/technical_specs?section=grids` contra um domínio de vestuário real (TOPS/SHIRTS). **Prioridade da chamada: descobrir se `WAIST_CIRCUMFERENCE_FROM` e medidas corporais similares aparecem como `required`.** Reportar o resultado ao Miguel antes de continuar — se forem obrigatórias, o plano do M6 muda e a normalização de tamanho (§11.4) não fecha ainda.
+4. Só depois do passo 3 (dado que existe e não é obrigatório medida corporal): fechar o mapeamento `NormalizedSize → row do guia` e implementar `normalizeSize` + testes com os 35 formatos reais (§11.4). Instalar `@e965/xlsx`, implementar `MoovinSource`/`xlsx-source.ts`, mapper, `MoovinImportService`. Rodar contra o xlsx real (`data/produtos_moovin.xlsx`), conferir 959 produtos / 2.704 variações, 2ª execução não duplica.
+5. M6: `size-grid.service.ts` + criação de **um** guia real (VESTIDO/FARM, maior volume, 79 produtos) via `/catalog/charts`, chave `(domain_id, brand, gender)`.
+6. M7: publicar **um** produto multi-variação ponta a ponta (formato decidido pelo D8 do passo 2); confirmar status ativo — não moderado/pausado — depois do 201.
+7. Só então rodar o lote nos 959 produtos, com relatório de erros reprocessável (mesmo padrão do M4/M5).
+
+### 11.9 Decisões fechadas em 2026-07-16 (não são mais perguntas abertas)
+
+1. Caminho do xlsx: `data/produtos_moovin.xlsx` (default), `MOOVIN_IMPORT_FILE_PATH` sobrescreve. O Miguel entrega o arquivo manualmente em `data/`.
+2. Normalização: guardar as duas notações (`brandLabel`/`brLabel`), nunca descartar o parêntese — mapeamento final para `main_attribute` depende do `technical_specs` real (passo 3 acima).
+3. Dependência: `@e965/xlsx` (não a `xlsx` do npm público, vulnerável e parada em 0.18.5).
+4. Migrations aprovadas com os ajustes do Miguel: `product.moovin_urn` nullable+unique+index; `size_grid_chart` com chave `(domain_id, brand, gender)` + `chart_type`.
+5. `data/` no `.gitignore`, caminho via env var — vale independente da visibilidade do repositório (tem `PRECO_CUSTO`).
+6. Ordem confirmada e reforçada: `technical_specs` real vem **antes** de fechar M6 e a normalização de tamanho — a pergunta de medidas corporais obrigatórias é a primeira coisa a verificar depois de resolver D8.
+
+**Única pendência real para começar a codar:** as credenciais reais no `.env` (`ML_APP_ID`/`ML_CLIENT_SECRET`, hoje `REPLACE_ME`) e o arquivo `data/produtos_moovin.xlsx` precisam existir localmente antes dos passos 2–4. Aviso, não pergunta.
