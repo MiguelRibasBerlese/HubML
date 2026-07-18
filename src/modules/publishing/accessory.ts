@@ -184,7 +184,7 @@ function resolveGender(def: MlCategoryAttribute, p: AccessoryInput): ItemAttribu
 /** Casa um valor real com as allowed values (por nome, case-insensitive) → value_id. Lista fechada
  *  (value_type 'list') sem match → bloqueia. Atributo aberto ('string', values são só sugestões) →
  *  manda value_name. Valor ausente → bloqueia. */
-function resolveOpen(def: MlCategoryAttribute, value: string | null, source: string): ItemAttribute {
+export function resolveOpen(def: MlCategoryAttribute, value: string | null, source: string): ItemAttribute {
   if (!value) throw new ValidationError(`${def.id} exigido mas ${source} vazio — bloqueado`, def.id);
   const match = (def.values ?? []).find((v) => v.name && sameName(v.name, value));
   if (match) return { id: def.id, value_id: match.id, value_name: match.name };

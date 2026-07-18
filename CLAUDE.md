@@ -826,6 +826,48 @@ catálogo verificado. Alternativas: (a) achar GTIN real com o fornecedor,
 `under_review` com sub_status `forbidden` — é exatamente o padrão de burla
 de marca que a BPP pune. Recomendo pausar/corrigir manualmente.
 
+**VESTIDOS RESOLVIDOS (2026-07-18, mesma madrugada — "continue buscando a
+solução para os vestidos"). 3 items irmãos ATIVOS no ML** (VESTIDO FARM RIO
+VOLUME MIDI ORIGINAL, R$577): `MLB7194434092` (PP), `MLB7194434098` (P),
+`MLB4909286997` (G) — mesma família, guia `5170265`, fotos ok.
+
+Cadeia de achados (via gabarito real + `/items/validate`):
+1. **Os 88 vestidos FARM ativos da conta são items LEGADOS com array
+   `variations`** (family_name null, user_product null, criados 2026-03 pela
+   tela) — herança; a API desta conta **recusa `variations` sempre**
+   ("variations is invalid with family name" + family_name obrigatório).
+   Item novo de vestuário = **items irmãos**: 1 SKU (cor+tamanho) = 1 item
+   com o MESMO family_name; o ML agrupa em família sozinho.
+2. **FARM não é GTIN-gated em DRESSES** — validate passa sem GTIN nem
+   isenção (bate com o gabarito: variações com attrs vazios). O gate de
+   marca registrada existe (bolsas), mas é por marca×domínio.
+3. **DRESSES exige `SIZE_GRID_ID` E `SIZE_GRID_ROW_ID` no item** (erros
+   `missing.fashion_grid.grid_id/grid_row_id`). Row ids têm formato
+   `chartId:linha` (5170265:1=PP ... :5=GG), vêm nas rows do
+   `/catalog/charts/search` — que o `size_grid_chart.rows` já persiste.
+4. Os erros de shipping do validate (`lost_me1_by_user`,
+   `mandatory_free_shipping`) são `type:"warning"` — validate devolve 400
+   para qualquer cause, mas warning não bloqueia o POST real. **Sempre olhar
+   o `type` do cause antes de tratar como bloqueio.**
+
+Código (58/58 verdes): `apparel.ts` novo (APPAREL_MAP curado — só VESTIDO
+por ora; `resolveApparel` com discovery+guarda-corpo; `rowIdForSize` casa
+label real com linha do guia, sem match bloqueia; `buildApparelItemPayload`
+item irmão); `PublishingService.publishApparelProduct` (1 listing por
+variação — `listing.variationId` finalmente usado, `sizeGridId` gravado;
+erro em um SKU não trava os demais; idempotente por listing; só SKUs com
+estoque>0 por ora); `POST /admin/publish-apparel` + job `publish-apparel`.
+`ensureChart` reusado — pra FARM ele ACHA o 5170265 via busca (nunca criou
+nada); marca sem chart existente segue bloqueando no create (medida
+corporal), como deve.
+
+**Escala pendente:** ~78 vestidos FARM restantes publicam pelo mesmo
+endpoint (1 chamada por produto). COLCCI segue travado (chart `4537790`
+existe mas o nome "Vestidos" não cita a marca — `pickMatchingChart` não
+acha; pendente decisão do lookup manual por chart_id). Infantil segue
+pendente do mapa de gênero. Tamanhos fora do guia (ex. "P (3)") bloqueiam
+por SKU com erro claro — dado a corrigir na origem.
+
 **Padrão dos 6 defaults (guardar pro chefe do Miguel — o parecer numa linha):**
 todo campo crítico do catálogo Moovin foi preenchido no automático por alguém
 que não olhou, e nenhum é bug de código: (1) GTIN=SKU (duplicado), (2) tamanho

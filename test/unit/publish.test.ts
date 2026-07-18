@@ -101,6 +101,48 @@ describe('buildAccessoryPayload', () => {
   });
 });
 
+describe('apparel (items irmãos + size grid)', () => {
+  const rows = [
+    { id: '5170265:1', attributes: [{ id: 'SIZE', values: [{ name: 'PP' }] }] },
+    { id: '5170265:4', attributes: [{ id: 'SIZE', values: [{ name: 'G' }] }] },
+  ];
+
+  it('rowIdForSize casa label real; sem match bloqueia', async () => {
+    const { rowIdForSize } = await import('../../src/modules/publishing/apparel');
+    expect(rowIdForSize(rows, 'PP')).toBe('5170265:1');
+    expect(rowIdForSize(rows, 'g')).toBe('5170265:4'); // case-insensitive
+    expect(() => rowIdForSize(rows, '42')).toThrow(ValidationError);
+  });
+
+  it('payload do irmão: family_name + SIZE/COLOR/GRID no item, sem variations', async () => {
+    const { buildApparelItemPayload } = await import('../../src/modules/publishing/apparel');
+    const p = buildApparelItemPayload(
+      {
+        categoryId: 'MLB108704', domainId: 'DRESSES', genderValueId: '339665', genderName: 'Feminino',
+        baseAttributes: [{ id: 'BRAND', value_name: 'Farm' }],
+      },
+      { sku: '3542', color: 'PRETO', size: 'PP', priceCents: 57700, stockOnHand: 2 },
+      { familyName: 'VESTIDO FARM RIO VOLUME MIDI ORIGINAL', chartId: '5170265', rowId: '5170265:1' },
+    );
+    expect(p.family_name).toBe('VESTIDO FARM RIO VOLUME MIDI ORIGINAL');
+    expect(p.price).toBe(577);
+    expect(p.variations).toBeUndefined();
+    const ids = (p.attributes as { id: string }[]).map((a) => a.id);
+    expect(ids).toEqual(expect.arrayContaining(['BRAND', 'COLOR', 'SIZE', 'SIZE_GRID_ID', 'SIZE_GRID_ROW_ID', 'SELLER_SKU']));
+  });
+
+  it('sem cor/tamanho no SKU bloqueia', async () => {
+    const { buildApparelItemPayload } = await import('../../src/modules/publishing/apparel');
+    expect(() =>
+      buildApparelItemPayload(
+        { categoryId: 'C', domainId: 'D', genderValueId: 'G', genderName: 'F', baseAttributes: [] },
+        { sku: 'S', color: null, size: 'PP', priceCents: 100, stockOnHand: 1 },
+        { familyName: 'F', chartId: '1', rowId: '1:1' },
+      ),
+    ).toThrow(ValidationError);
+  });
+});
+
 describe('sameName', () => {
   it('ignora caixa e NBSP (U+00A0) do ML', async () => {
     const { sameName } = await import('../../src/modules/publishing/accessory');

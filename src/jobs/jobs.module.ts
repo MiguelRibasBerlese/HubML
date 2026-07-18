@@ -43,6 +43,9 @@ export class JobsModule implements OnModuleInit {
         payload.catalogProductId ? String(payload.catalogProductId) : undefined,
       );
     });
+    this.worker.register('publish-apparel', async (payload) => {
+      await this.publishing.publishApparelProduct(String(payload.productId));
+    });
     this.worker.register('build-size-grid', async (payload) => {
       await this.sizeGrid.ensureChart(payload as unknown as ChartPayloadParams);
     });

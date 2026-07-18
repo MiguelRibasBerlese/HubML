@@ -43,6 +43,15 @@ export class AdminController {
     return { enqueued: `publish-product:${body.productId}` };
   }
 
+  /** Enfileira publicação de vestuário (items irmãos por SKU — M7-vestidos). */
+  @Post('publish-apparel')
+  async publishApparel(@Body() body: { productId: string }): Promise<{ enqueued: string }> {
+    await this.jobs.enqueue('publish-apparel', { productId: body.productId }, {
+      dedupeKey: `publish-apparel:${body.productId}`,
+    });
+    return { enqueued: `publish-apparel:${body.productId}` };
+  }
+
   /** Enfileira a criação de um guia de tamanho (dedupe por domain_id+brand+gender). */
   @Post('build-size-grid')
   async buildSizeGrid(@Body() body: ChartPayloadParams): Promise<{ enqueued: string }> {

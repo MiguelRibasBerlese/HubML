@@ -8,6 +8,8 @@ import { MlApiError, ValidationError } from '../../lib/errors';
 import { validateForPublish, type PublishableProduct } from './publish-validator';
 import { buildSingleVariationPayload, buildCatalogPayload, buildUpdatePayload } from './payload-builder';
 import { ACCESSORY_MAP, resolveAccessory, buildAccessoryPayload, sameName } from './accessory';
+import { APPAREL_MAP, resolveApparel, buildApparelItemPayload, rowIdForSize } from './apparel';
+import { SizeGridService } from '../attributes/size-grid.service';
 import type { MlItemVariation } from '../../ml/api/ml-api.types';
 
 export interface PublishResult {
@@ -30,6 +32,7 @@ export class PublishingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ml: MlApi,
+    private readonly sizeGrid: SizeGridService,
   ) {}
 
   /** Constrói o payload de POST /items sem enviar nada (dry-run — M-acessórios).
@@ -165,6 +168,87 @@ export class PublishingService {
       this.log.error({ productId, err: (err as Error).message }, 'falha na publicação');
       throw err;
     }
+  }
+
+  /** Vestuário com SIZE_GRID (M7-vestidos): cada SKU vira um item irmão com o mesmo
+   *  family_name (modelo UP — API recusa `variations` nesta conta). Chart resolvido via
+   *  ensureChart (busca antes de criar) e a linha (SIZE_GRID_ROW_ID) casada pelo label real
+   *  do tamanho — sem match, aquele SKU bloqueia (nunca chuta guia). Idempotente por
+   *  listing (productId, variationId): irmão já criado não recria. Erro num SKU não trava
+   *  os demais — cada listing carrega seu próprio status/last_error. */
+  async publishApparelProduct(productId: string): Promise<{ created: string[]; skipped: string[]; failed: { sku: string; error: string }[] }> {
+    const product = await this.prisma.product.findUniqueOrThrow({
+      where: { id: productId },
+      include: { variations: true },
+    });
+    if (!product.moovinType || !APPAREL_MAP[product.moovinType]) {
+      throw new ValidationError(`TIPO "${product.moovinType}" não está no mapa de vestuário`, 'moovinType');
+    }
+
+    const resolved = await resolveApparel(this.ml, {
+      title: product.title,
+      brand: product.brand,
+      gender: product.gender,
+      moovinType: product.moovinType,
+    });
+    const chart = await this.sizeGrid.ensureChart({
+      domainId: resolved.domainId,
+      brand: product.brand!,
+      genderValueId: resolved.genderValueId,
+      genderName: resolved.genderName,
+      names: { MLB: `${product.moovinType} ${product.brand}` },
+      rows: [], // só usado no caminho de criar — DRESSES sem chart existente bloqueia no ML (medida corporal), como deve
+    });
+    const rows = (chart.rows ?? []) as unknown[];
+
+    const created: string[] = [];
+    const skipped: string[] = [];
+    const failed: { sku: string; error: string }[] = [];
+    // ponytail: só SKUs com estoque — irmão de estoque 0 entra quando o sync de estoque (M8) cuidar dele
+    for (const v of product.variations.filter((x) => x.stockOnHand > 0)) {
+      const listing = await this.prisma.listing.upsert({
+        where: { id: await this.listingIdForVariation(productId, v.id) },
+        create: { productId, variationId: v.id, status: 'pending' },
+        update: {},
+      });
+      if (listing.mlItemId) {
+        skipped.push(v.sku);
+        continue;
+      }
+      try {
+        const payload = buildApparelItemPayload(resolved, v, {
+          familyName: product.title,
+          chartId: chart.chartId,
+          rowId: rowIdForSize(rows, v.size ?? ''),
+          pictures: picturesFrom(product.imageUrl),
+        });
+        const item = await this.ml.createItem(payload);
+        await this.prisma.listing.update({
+          where: { id: listing.id },
+          data: { mlItemId: item.id, sizeGridId: chart.chartId, status: 'active', lastError: Prisma.DbNull, lastSyncedAt: new Date() },
+        });
+        this.log.info({ productId, sku: v.sku, mlItemId: item.id }, 'irmão criado');
+        created.push(item.id);
+      } catch (err) {
+        const body = err instanceof MlApiError ? err.body : { message: (err as Error).message };
+        await this.prisma.listing.update({
+          where: { id: listing.id },
+          data: { status: 'error', lastError: body as object },
+        });
+        this.log.error({ productId, sku: v.sku, err: (err as Error).message }, 'falha no irmão');
+        failed.push({ sku: v.sku, error: (err as Error).message });
+      }
+    }
+    if (failed.length && !created.length && !skipped.length) {
+      throw new ValidationError(`todos os SKUs falharam: ${failed.map((f) => `${f.sku}: ${f.error}`).join(' | ').slice(0, 400)}`, 'publish');
+    }
+    return { created, skipped, failed };
+  }
+
+  /** Id do listing existente (produto, variação) ou uuid novo p/ o upsert create. */
+  private async listingIdForVariation(productId: string, variationId: string): Promise<string> {
+    const existing = await this.prisma.listing.findFirst({ where: { productId, variationId } });
+    return existing?.id ?? randomUUID();
   }
 
   /** Persiste o de-para variação nossa ↔ ml_variation_id (casa por SELLER_SKU/seller_custom_field).
