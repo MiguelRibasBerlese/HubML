@@ -35,6 +35,8 @@ const schema = z.object({
 
   FOCUS_NFE_TOKEN: z.string().default(''),
   FOCUS_NFE_BASE_URL: z.string().url().default('https://api.focusnfe.com.br'),
+
+  MOOVIN_IMPORT_FILE_PATH: z.string().default('data/produtos_moovin.xlsx'),
 });
 
 export type Env = z.infer<typeof schema>;

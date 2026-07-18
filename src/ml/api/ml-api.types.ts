@@ -47,6 +47,43 @@ export interface MlCategoryAttribute {
   values?: { id: string; name: string }[];
 }
 
+/** Guia de tamanho (SIZE_GRID). Parcial: só o que persistimos ou usamos pra escolher entre resultados de busca. */
+export interface MlSizeGridChart {
+  id: number | string;
+  names?: Record<string, string>;
+  type?: 'BRAND' | 'STANDARD' | 'SPECIFIC';
+  rows: unknown[];
+}
+
+/** Resposta de POST /catalog/charts/search — confirmado contra a conta real (§11, M6):
+ *  o filtro BRAND não restringe de fato os resultados, então `charts` pode trazer guias
+ *  de marcas diferentes da pedida; a escolha por nome fica por conta de quem chama. */
+export interface MlSizeGridChartSearchResult {
+  paging?: { total: number; offset: number; limit: number };
+  charts: MlSizeGridChart[];
+}
+
+/** Sugestão de categoria a partir de texto livre (`domain_discovery`). `domain_id` já vem
+ *  normalizado (sem prefixo `MLB-`) por `MlApi.suggestDomain` — ver bug §11/M6 dry run. */
+export interface MlDomainSuggestion {
+  domainId: string;
+  domainName: string;
+  categoryId: string;
+  categoryName: string;
+}
+
+/** Produto do catálogo do ML (`GET /products/{id}`). Publicar vinculado a ele
+ *  (`catalog_product_id` + `catalog_listing`) dispensa GTIN — identidade vem do catálogo.
+ *  `domainId` já normalizado sem prefixo `MLB-` (mesmo bug de sempre). */
+export interface MlCatalogProduct {
+  id: string;
+  status: string;
+  name: string;
+  domainId: string;
+  brand: string | null;
+  listingStrategy: string | null; // settings.listing_strategy — 'open' = aberto pra anunciar
+}
+
 export interface MlOrder {
   id: number;
   status: string;

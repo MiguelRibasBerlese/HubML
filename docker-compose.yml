@@ -16,5 +16,23 @@ services:
       timeout: 3s
       retries: 10
 
+  test-db:
+    image: postgres:16-alpine
+    container_name: hubml-test-db
+    environment:
+      POSTGRES_USER: hubml
+      POSTGRES_PASSWORD: hubml
+      POSTGRES_DB: hubml
+    ports:
+      - "5434:5432" # banco isolado só pra `npm test` — TRUNCATE de teste nunca toca dado de dev (5433)
+    volumes:
+      - hubml_test_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hubml"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   hubml_pgdata:
+  hubml_test_pgdata:

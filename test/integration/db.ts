@@ -2,17 +2,25 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
-// Carrega .env (vitest não faz isso sozinho) e expõe um Prisma para os testes de integração.
-// Sem DATABASE_URL configurada, os testes de integração são pulados (ver dbConfigured).
+// Fallback pra quando vitest roda fora do script "test" do package.json (ex. direto
+// via IDE) — o script "test" já usa `node --env-file-if-exists=.env.test` que roda
+// ANTES de qualquer import, incluindo o autoload de .env do próprio @prisma/client;
+// esse loadDotEnv() aqui roda tarde demais pra vencer aquele autoload (é código de
+// módulo, não flag de processo), por isso não basta sozinho pra garantir o banco
+// isolado (5434) — ver package.json. Sem DATABASE_URL configurada, os testes de
+// integração são pulados (ver dbConfigured).
 function loadDotEnv(): void {
-  try {
-    const raw = readFileSync(join(__dirname, '../../.env'), 'utf8');
-    for (const line of raw.split('\n')) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"]*)"?\s*$/);
-      if (m && !process.env[m[1]!]) process.env[m[1]!] = m[2];
+  for (const file of ['../../.env.test', '../../.env']) {
+    try {
+      const raw = readFileSync(join(__dirname, file), 'utf8');
+      for (const line of raw.split('\n')) {
+        const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"]*)"?\s*$/);
+        if (m && !process.env[m[1]!]) process.env[m[1]!] = m[2];
+      }
+      return;
+    } catch {
+      // tenta o próximo arquivo
     }
-  } catch {
-    // sem .env — segue com o ambiente atual
   }
 }
 loadDotEnv();

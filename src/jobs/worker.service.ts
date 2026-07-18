@@ -86,7 +86,9 @@ export class Worker {
     }
     try {
       await handler(job.payload);
-      await this.prisma.job.update({ where: { id: job.id }, data: { status: 'done' } });
+      // Libera o dedupe_key ao concluir — senão o índice unique bloqueia pra sempre
+      // reenfileirar esse tipo (o dedupe só deve valer contra jobs não terminados).
+      await this.prisma.job.update({ where: { id: job.id }, data: { status: 'done', dedupeKey: null } });
       log.debug('job concluído');
     } catch (err) {
       const attempts = job.attempts + 1;
@@ -99,6 +101,8 @@ export class Worker {
           attempts,
           runAt: new Date(Date.now() + backoffSec * 1000),
           lastError: { message: (err as Error).message },
+          // Terminal (failed): libera o dedupe_key pra permitir reenfileirar.
+          ...(failed ? { dedupeKey: null } : {}),
         },
       });
       log.warn({ attempts, failed, err: (err as Error).message }, 'job falhou');

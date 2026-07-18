@@ -18,7 +18,12 @@ model Product {
   description   String    @default("")
   brand         String?
   mlCategoryId  String?   @map("ml_category_id") // ex MLB31447
+  mlDomainId    String?   @map("ml_domain_id") // ex DRESSES (sem prefixo MLB-); resolvido via domain_discovery
+  imageUrl      String?   @map("image_url") // URL da imagem principal (coluna IMAGEM do xlsx Moovin)
+  moovinType    String?   @map("moovin_type") // coluna TIPO do xlsx (OCULOS/BOLSA/...) — chave do mapa de query curada
+  moovinCategoria String? @map("moovin_categoria") // coluna CATEGORIA_MOOVIN — fonte de GENDER quando = UNISSEX
   gender        String?
+  moovinUrn     String?   @unique @map("moovin_urn") // chave de agrupamento da Moovin (§11.3 do PLAN.md); null = produto vindo do import M4 (conta ML)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -202,6 +207,32 @@ model WebhookEvent {
 
   @@index([status])
   @@map("webhook_event")
+}
+
+// ─── Guias de tamanho (SIZE_GRID) ────────────────────────────────────────────
+// Cache local pra não recriar o mesmo chart entre produtos que compartilham
+// domain_id×brand×gender (§11.5 do PLAN.md). Listing.sizeGridId guarda o vínculo
+// por anúncio; esta tabela existe só pra evitar POST /catalog/charts duplicado.
+
+enum SizeGridChartType {
+  BRAND
+  STANDARD
+  SPECIFIC
+}
+
+model SizeGridChart {
+  id        String            @id @default(uuid()) @db.Uuid
+  domainId  String            @map("domain_id") // ex TOPS, SHIRTS — sem prefixo de site
+  brand     String
+  gender    String
+  chartId   String            @map("chart_id") // id retornado por POST /catalog/charts
+  chartType SizeGridChartType @map("chart_type")
+  rows      Json              // rows[] retornadas pelo ML, formato "463005:1"
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([domainId, brand, gender])
+  @@map("size_grid_chart")
 }
 
 // ─── Fila de jobs (Postgres) ─────────────────────────────────────────────────
