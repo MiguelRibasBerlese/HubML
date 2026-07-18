@@ -872,9 +872,21 @@ listing, dado a corrigir na origem. Muitos itens ficam alguns minutos em
 foto do ML puxando da Moovin) — converte pra `active` sozinho, foi assim
 com os 3 primeiros.
 
-COLCCI segue travado (chart `4537790` existe mas o nome "Vestidos" não cita
-a marca — `pickMatchingChart` não acha; pendente decisão do lookup manual
-por chart_id). Infantil segue pendente do mapa de gênero.
+**COLCCI DESTRAVADO E RODADO (2026-07-18, pedido do Miguel "tenta o mesmo
+caminho pros vestidos COLCCI"):** o "lookup manual de chart_id" pendente
+virou **uma linha semeada no cache `size_grid_chart`** (COLCCI→`4537790`,
+de-para já verificado linha a linha contra o print do Miguel na
+investigação anterior e reconfirmado ao vivo: peito 82→114cm) — zero código
+novo, `ensureChart` consulta o cache primeiro. Validate confirmou que
+COLCCI também **não é GTIN-gated em DRESSES**. Lote: 24 produtos com
+estoque → **51 irmãos `active`** + **8 SKUs numéricos (36-44) bloqueados
+limpos** ("não tem linha no guia PP/P/M/G/GG") — esses precisariam do chart
+de numeração `4539158`, mas o cache é 1 chart por marca×gênero×domínio;
+suportar 2 formatos de tamanho por marca é decisão/design futuro, não foi
+improvisado. 3 jobs `failed` = produtos 100% numéricos (todos os SKUs
+bloqueados → job esgota retries; ruidoso mas sem estado sujo).
+
+Infantil segue pendente do mapa de gênero.
 
 **Padrão dos 6 defaults (guardar pro chefe do Miguel — o parecer numa linha):**
 todo campo crítico do catálogo Moovin foi preenchido no automático por alguém
