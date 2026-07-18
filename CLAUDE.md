@@ -1007,6 +1007,16 @@ recuperados; 1 ficou: polo CK GGG **sem foto na Moovin**
 (4 tamanhos sem medida real tipo "P (3)"/"6", 1 sem foto, 3 diversos
 antigos). Guias criados pelo hub: **9**.
 
+**BLUSAS COLCCI ("arrume", 2026-07-18): +30 anúncios, total 707.** Única
+pendência feminina com medida da PRÓPRIA marca: as medidas Colcci
+verificadas por print no `4537790` foram clonadas pro guia novo `6137436`
+"BLUSAS COLCCI" (BLOUSES). 14 fotos verificadas (mix Sem mangas/Curta —
+tomara-que-caia, regatas, meia-manga). 1 SKU "M (40)" bloqueado (rótulo
+misto sem linha — dado de origem). **Seguem bloqueados por falta de medida
+da própria marca (regra do Miguel, não renegociável): CK fem, MARIA FILÓ,
+RICHARDS fem, LEVIS fem, LILICA infantil** — nenhum tem medida própria em
+guia nenhum da conta; só saem com medida real nova do fornecedor.
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
