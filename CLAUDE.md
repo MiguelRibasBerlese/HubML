@@ -905,6 +905,17 @@ que não olhou, e nenhum é bug de código: (1) GTIN=SKU (duplicado), (2) tamanh
 de R$1.199. Todos custam venda ou dinheiro; todos são dado errado que "parece
 preenchido" — pior que dado ausente.
 
+## Placar da madrugada 2026-07-18 (fechamento)
+
+**179 anúncios ativos no ML, todos publicados pelo hub, todos confirmados
+`active` com fotos ok:** 118 vestidos FARM + 59 vestidos COLCCI (51 nominais
+chart 4537790 + 8 numeração chart 4539158) + 2 bolsas LUZ DA LUA (catalog
+listing). 1 único SKU bloqueado (FARM `"P (3)"` — dado de origem). 59/59
+testes verdes. Commits: dd67f4d → 0cbe28d. Pendências pro Miguel: óculos
+BRAND=OUTROS (só remove pela tela), MONTENAPOLEONE AMÊNDOA (sem GTIN nem
+catálogo na cor), infantil (mapa de gênero), marcas gateadas
+(LACOSTE/CK/SCHUTZ/KIPLING — autorização de conta).
+
 ## Comandos
 
 ```
