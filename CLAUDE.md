@@ -861,12 +861,20 @@ estoque>0 por ora); `POST /admin/publish-apparel` + job `publish-apparel`.
 nada); marca sem chart existente segue bloqueando no create (medida
 corporal), como deve.
 
-**Escala pendente:** ~78 vestidos FARM restantes publicam pelo mesmo
-endpoint (1 chamada por produto). COLCCI segue travado (chart `4537790`
-existe mas o nome "Vestidos" não cita a marca — `pickMatchingChart` não
-acha; pendente decisão do lookup manual por chart_id). Infantil segue
-pendente do mapa de gênero. Tamanhos fora do guia (ex. "P (3)") bloqueiam
-por SKU com erro claro — dado a corrigir na origem.
+**LOTE COMPLETO RODADO (2026-07-18, mesma madrugada — "faça isso"):** os 75
+produtos VESTIDO/FARM com estoque foram enfileirados e processados
+(76 jobs `done`, 0 falhas de job). Resultado: **118 listings `active` com
+`ml_item_id`** (119 SKUs com estoque − 1 bloqueado) + as 2 bolsas = **120
+anúncios criados pelo hub no total**. Único bloqueio: SKU 3320 com tamanho
+`"P (3)"` — sem linha no guia (PP/P/M/G/GG), erro claro persistido no
+listing, dado a corrigir na origem. Muitos itens ficam alguns minutos em
+`paused [picture_download_pending]` logo após criar (fila de download de
+foto do ML puxando da Moovin) — converte pra `active` sozinho, foi assim
+com os 3 primeiros.
+
+COLCCI segue travado (chart `4537790` existe mas o nome "Vestidos" não cita
+a marca — `pickMatchingChart` não acha; pendente decisão do lookup manual
+por chart_id). Infantil segue pendente do mapa de gênero.
 
 **Padrão dos 6 defaults (guardar pro chefe do Miguel — o parecer numa linha):**
 todo campo crítico do catálogo Moovin foi preenchido no automático por alguém
