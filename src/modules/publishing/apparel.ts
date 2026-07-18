@@ -180,6 +180,15 @@ export function buildApparelItemPayload(
   return body;
 }
 
+/** family_name ≤60 chars (limite real do ML: item.family_name.length_invalid). Trunca em
+ *  fronteira de palavra — ajuste de apresentação, o título completo segue no hub. */
+export function clampFamilyName(title: string): string {
+  if (title.length <= 60) return title;
+  const cut = title.slice(0, 61);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut.slice(0, 60)).trim();
+}
+
 /** MODEL = título sem a marca e sem a palavra do tipo (mesma estratégia title-minus-brand). */
 function modelFrom(p: ApparelProductInput): string {
   let s = p.title;

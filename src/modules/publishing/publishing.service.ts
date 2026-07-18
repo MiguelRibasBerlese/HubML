@@ -8,7 +8,7 @@ import { MlApiError, ValidationError } from '../../lib/errors';
 import { validateForPublish, type PublishableProduct } from './publish-validator';
 import { buildSingleVariationPayload, buildCatalogPayload, buildUpdatePayload } from './payload-builder';
 import { ACCESSORY_MAP, resolveAccessory, buildAccessoryPayload, sameName } from './accessory';
-import { APPAREL_MAP, resolveApparel, buildApparelItemPayload, rowIdForSize } from './apparel';
+import { APPAREL_MAP, resolveApparel, buildApparelItemPayload, rowIdForSize, clampFamilyName } from './apparel';
 import { SizeGridService } from '../attributes/size-grid.service';
 import type { MlItemVariation } from '../../ml/api/ml-api.types';
 
@@ -223,7 +223,7 @@ export class PublishingService {
         const rowId = rowIdForSize(rows, v.size ?? '');
         const chartIdForItem = rowId.split(':')[0] ?? chart.chartId;
         const payload = buildApparelItemPayload(resolved, v, {
-          familyName: product.title,
+          familyName: clampFamilyName(product.title),
           chartId: chartIdForItem,
           rowId,
           pictures: picturesFrom(product.imageUrl),

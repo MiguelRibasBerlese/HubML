@@ -123,6 +123,16 @@ describe('apparel (items irmãos + size grid)', () => {
     expect(rowIdForSize(grid, '2')).toBe('6558327:2');
   });
 
+  it('clampFamilyName: ≤60 chars em fronteira de palavra', async () => {
+    const { clampFamilyName } = await import('../../src/modules/publishing/apparel');
+    expect(clampFamilyName('CURTO')).toBe('CURTO');
+    const long = 'CAMISETA CALVIN KLEIN MASCULINA MEIA MALHA INTENSE POWER BRANCO';
+    const out = clampFamilyName(long);
+    expect(out.length).toBeLessThanOrEqual(60);
+    expect(long.startsWith(out)).toBe(true);
+    expect(out.endsWith(' ')).toBe(false);
+  });
+
   it('sleeveFromTitle: só quando o título diz', async () => {
     const { sleeveFromTitle } = await import('../../src/modules/publishing/apparel');
     expect(sleeveFromTitle('CAMISETA X MANGA LONGA')).toBe('Longa');

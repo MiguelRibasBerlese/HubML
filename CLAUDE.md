@@ -970,6 +970,27 @@ da peça + medida real do time). 2 SKUs XGG bloqueados (nenhum guia da conta
 tem medida de XGG — sem fonte real). 4 guias criados pelo hub até agora:
 6558327, 6136504, 6136506 (+ reusos 5170265/4537790/4539158/4977679/5170097).
 
+**ROUND 2 — CK/LEVIS/FARM-fem (2026-07-18, "Continue subindo"): +236
+anúncios, total 622.** Como:
+- **Canários primeiro**: 1 CK + 1 LEVIS publicados antes do lote → **nem CK
+  nem LEVIS têm moderação de marca em T_SHIRTS** (a lista de "marcas
+  provavelmente gateadas" da era das bolsas não vale pra vestuário).
+- **Seeds** (mesmo padrão FOXTON): CK→6136504 (T_SHIRTS) + 6558327
+  (SHIRTS); LEVIS→6136504. **FARM fem ganhou guia próprio `6559695`
+  "CAMISETAS FARM FEMININO"** (T_SHIRTS fem tinha 0 guias) clonado das
+  BLUSAS FARM 5170097 — medidas femininas da própria FARM
+  (peito 92-106/cintura/quadril).
+- **53 fotos verificadas uma a uma** (todas manga Curta) + 11 por título.
+- **Bug meu achado e corrigido**: o caminho apparel não limitava
+  family_name a 60 chars (`item.family_name.length_invalid`, 9 SKUs) →
+  `clampFamilyName` trunca em fronteira de palavra; os 9 recuperados.
+- Resultado: CK 144 ativos (57 camisetas + 87 polos), LEVIS 69 (45+24),
+  FARM fem 12. Bloqueios limpos: 34 GGG + 12 XGG (sem medida real em
+  nenhum guia da conta). **Falso positivo do ML reportado, não contornado:**
+  `invalid.title.gender` em 2 produtos com "BEBE" no título (cor "azul
+  bebê"/fit "bebe" — o checador acha que é produto de bebê); mudar título é
+  decisão do Miguel.
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
