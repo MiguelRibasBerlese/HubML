@@ -23,8 +23,10 @@ export const APPAREL_MAP: Record<string, ApparelMapEntry> = {
   // GARMENT_TYPE "Camisa polo"; o polo Richards ativo do time está lá) — query com "polo"
   // cai em SPORT_T_SHIRTS, que o guarda-corpo bloqueia (visto real 2026-07-18).
   POLO: { queryPhrase: 'camiseta', expectedDomain: 'T_SHIRTS' },
-  // CAMISA (domínio SHIRTS) fica FORA de propósito: a conta não tem nenhum guia de SHIRTS
-  // e criar do zero exige medida corporal real que a Moovin não tem (2026-07-18).
+  // CAMISA destravada (2026-07-18, "tenta as camisas com o guia que tiver medida real"):
+  // guia de SHIRTS criado clonando as medidas REAIS do 4977679 (ROUPAS MASCULINO).
+  // Query "camisa" resolve SHIRTS; "camisa masculina" cai em T_SHIRTS (visto real).
+  CAMISA: { queryPhrase: 'camisa', expectedDomain: 'SHIRTS' },
 };
 
 /** Linhas do chart como vêm do `/catalog/charts/search` (persistidas em size_grid_chart.rows). */

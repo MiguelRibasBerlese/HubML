@@ -13,6 +13,12 @@ export interface ChartPayloadParams {
   genderName: string; // nome legível, ex. "Feminino"
   names: Record<string, string>; // nome do guia por site, ex. { MLB: "Guia FARM Vestidos" }
   rows: SizeGridRow[];
+  /** Linhas completas copiadas de um guia REAL (com FILTRABLE_SIZE/medida corporal) —
+   *  caminho pra clonar medidas reais entre domínios (2026-07-18, camisas). Quando
+   *  presente, vence `rows`. Formato: o mesmo de `chart.rows[].attributes` do ML. */
+  rawRows?: { attributes: { id: string; values: unknown[] }[] }[];
+  measureType?: string; // ex. BODY_MEASURE — copiado do guia fonte
+  mainAttributeId?: string; // ex. SIZE — copiado do guia fonte
 }
 
 /** Payload de `POST /catalog/charts` — último recurso, só quando `buildChartSearchPayload`
@@ -22,8 +28,20 @@ export interface ChartPayloadParams {
  *  Forma de `values` por linha confirmada contra um chart real da conta (5170265): SIZE não
  *  leva `id` (só `name`), diferente do formato usado em BRAND/GENDER no nível do chart. */
 export function buildChartPayload(params: ChartPayloadParams): Record<string, unknown> {
-  if (!params.rows.length) throw new ValidationError('guia de tamanho sem linhas', 'rows');
   const siteId = params.siteId ?? 'MLB';
+  // Linhas completas de um guia real (clonagem de medidas entre domínios) vencem `rows`.
+  if (params.rawRows?.length) {
+    return {
+      names: params.names,
+      domain_id: params.domainId,
+      site_id: siteId,
+      ...(params.measureType ? { measure_type: params.measureType } : {}),
+      ...(params.mainAttributeId ? { main_attribute_id: params.mainAttributeId } : {}),
+      attributes: [{ id: 'GENDER', values: [{ id: params.genderValueId, name: params.genderName }] }],
+      rows: params.rawRows,
+    };
+  }
+  if (!params.rows.length) throw new ValidationError('guia de tamanho sem linhas', 'rows');
   return {
     names: params.names,
     domain_id: params.domainId,

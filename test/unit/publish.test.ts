@@ -157,6 +157,21 @@ describe('apparel (items irmãos + size grid)', () => {
   });
 });
 
+describe('buildChartPayload — rawRows (clonagem de medidas reais)', () => {
+  it('usa rawRows verbatim + measure_type/main_attribute_id, sem BRAND no nível do chart', async () => {
+    const { buildChartPayload } = await import('../../src/modules/attributes/size-grid-payload');
+    const raw = [{ attributes: [{ id: 'SIZE', values: [{ name: '1' }] }, { id: 'CHEST_CIRCUMFERENCE_FROM', values: [{ name: '90 cm', struct: { number: 90, unit: 'cm' } }] }] }];
+    const p = buildChartPayload({
+      domainId: 'SHIRTS', brand: 'RICHARDS', genderValueId: '339666', genderName: 'Masculino',
+      names: { MLB: 'CAMISAS MASCULINO' }, rows: [], rawRows: raw, measureType: 'BODY_MEASURE', mainAttributeId: 'SIZE',
+    });
+    expect(p.rows).toBe(raw);
+    expect(p.measure_type).toBe('BODY_MEASURE');
+    expect(p.main_attribute_id).toBe('SIZE');
+    expect(p.domain_id).toBe('SHIRTS');
+  });
+});
+
 describe('sameName', () => {
   it('ignora caixa e NBSP (U+00A0) do ML', async () => {
     const { sameName } = await import('../../src/modules/publishing/accessory');

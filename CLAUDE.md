@@ -935,6 +935,27 @@ Moovin diz MASCULINO — conflito); CK/LACOSTE/FOXTON/COLCCI-blusa/MARIA FILÓ
 LILICA (mapa gênero infantil); "BLUSA RICHARDS NARA" (título diz RICHARDS,
 MARCA diz FARM — conflito de dado); POLO PIQUET LISA ML (produto sem foto).
 
+**CAMISAS RODADAS + PRIMEIRO GUIA CRIADO PELO HUB (2026-07-18, "tenta as
+camisas com o guia que tiver medida real"): +48 anúncios, total 340.**
+SHIRTS tinha 0 guias na conta; cross-domain (guia de T_SHIRTS em item de
+SHIRTS) é rejeitado pelo ML (`invalid.fashion_grid.grid_id`). Caminho:
+**clonar as medidas REAIS do 4977679** (ROUPAS MASCULINO — peito 90/95/100/
+110/120cm, dado do time) num guia novo de SHIRTS. Implementado via
+`ChartPayloadParams.rawRows` (+`measureType`/`mainAttributeId`) —
+`buildChartPayload` aceita linhas completas copiadas de um guia real, e o
+disparo foi pelo pipeline (`POST /admin/build-size-grid`), busca-primeiro e
+cache como sempre. **Guia criado: `6558327` "CAMISAS MASCULINO"** (job done,
+0 retries — primeira criação real de chart do projeto, o formato de
+`buildChartPayload` com rawRows está provado contra o ML). MLB107292 só
+exige BRAND/MODEL/GENDER/COLOR/SIZE (sem SLEEVE_TYPE — sem maratona de
+foto). CAMISA→SHIRTS no APPAREL_MAP (query 'camisa'; 'camisa masculina' cai
+em T_SHIRTS — visto real). Resultado: 48 camisas RICHARDS masc ativas; 3
+SKUs tamanho "6" bloqueados (o guia fonte só tem linhas 1-5 — cobrir o "6"
+exige medida real que não existe na conta). CAMISA RICHARDS Feminino (4)
+segue bloqueada (guia é Masculino — mesmo conflito de gênero do caso LEVIS);
+CK camisas (tamanhos mistos 2-6 + colarinho 38/40) e FOXTON (P-XGG,
+precisaria match por FILTRABLE_SIZE) pendentes de decisão/extensão.
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
