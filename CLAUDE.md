@@ -1017,6 +1017,25 @@ da própria marca (regra do Miguel, não renegociável): CK fem, MARIA FILÓ,
 RICHARDS fem, LEVIS fem, LILICA infantil** — nenhum tem medida própria em
 guia nenhum da conta; só saem com medida real nova do fornecedor.
 
+**"Resolva os gaps" — investigação final (2026-07-18): os gaps femininos
+restantes NÃO são resolvíveis nesta sessão, e fica registrado o porquê e o
+caminho.** Ideia testada: usar a **tabela de medidas oficial publicada pela
+própria marca** no site dela (não é "tabela genérica de mercado" — é dado
+da marca, fonte citável). Resultado: (a) CK Brasil não expõe tabela
+feminina única (revendas divergem entre si: busto PP de 82 a 88cm conforme
+a loja — inutilizável); (b) richards.com.br e mariafilo.com.br têm "Guia de
+medidas" nas páginas de produto mas **bloqueiam fetch automatizado** (404
+pra bot); (c) extensão Claude-in-Chrome não estava conectada pra ler pelo
+navegador real. **Caminho pronto pra quando o Miguel acordar:** abrir no
+navegador o guia de medidas feminino de richards.com.br / mariafilo.com.br
+/ calvinklein.com.br (qualquer página de produto feminino → "Guia de
+medidas"), me passar os números (busto cm por tamanho) — com isso o
+pipeline publica CK fem (37 SKUs), MARIA FILÓ (17), RICHARDS fem (19),
+LEVIS fem (4) em minutos (build-size-grid + publish-apparel, tudo já
+provado). LILICA infantil precisa disso + mapa de gênero infantil (eu
+faço) + guia infantil. Gaps de origem que só a MAGNI corrige: rótulos
+mistos ("M (40)", "P (3)", "6" — 6 SKUs) e 1 produto sem foto.
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
