@@ -991,6 +991,22 @@ anúncios, total 622.** Como:
   bebê"/fit "bebe" — o checador acha que é produto de bebê); mudar título é
   decisão do Miguel.
 
+**GGG/XGG RESOLVIDOS ("resolva", 2026-07-18): +47 anúncios, total 677.**
+Fonte real achada: o guia do time `5163260` tem medida corporal da linha
+**"G3 (XGG)"** (peito 132cm) — e GGG ≡ G3 ≡ XGG pela notação do próprio
+guia ("G3 (XGG)"), cadeia de dado real, não extrapolação. Achado novo do
+ML no caminho: **`duplicated_measure_value`** — um guia não aceita duas
+linhas com a mesma medida, então XGG e GGG (mesma medida) exigiram guias
+separados: `6137334` (T_SHIRTS até XGG), `6137410` (T_SHIRTS até GGG),
+`6137412` (SHIRTS até XGG), todos clonando PP-GG do ROUPAS MASCULINO +
+linha G3 do 5163260. União de linhas no cache por marca (CK←GGG,
+LEVIS←XGG+GGG, FOXTON←XGG) e o SIZE_GRID_ID por item saiu certo via
+derivação pelo row id (26 GGG→6137410, 14 XGG→6137334/12). 47/48
+recuperados; 1 ficou: polo CK GGG **sem foto na Moovin**
+(`requiresPictures` — gap de origem). Erros restantes no hub inteiro: 8
+(4 tamanhos sem medida real tipo "P (3)"/"6", 1 sem foto, 3 diversos
+antigos). Guias criados pelo hub: **9**.
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
