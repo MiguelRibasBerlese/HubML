@@ -43,10 +43,11 @@ export class AdminController {
     return { enqueued: `publish-product:${body.productId}` };
   }
 
-  /** Enfileira publicação de vestuário (items irmãos por SKU — M7-vestidos). */
+  /** Enfileira publicação de vestuário (items irmãos por SKU — M7-vestidos).
+   *  `sleeveType` opcional = SLEEVE_TYPE verificado por foto quando o título não diz. */
   @Post('publish-apparel')
-  async publishApparel(@Body() body: { productId: string }): Promise<{ enqueued: string }> {
-    await this.jobs.enqueue('publish-apparel', { productId: body.productId }, {
+  async publishApparel(@Body() body: { productId: string; sleeveType?: string }): Promise<{ enqueued: string }> {
+    await this.jobs.enqueue('publish-apparel', { productId: body.productId, sleeveType: body.sleeveType }, {
       dedupeKey: `publish-apparel:${body.productId}`,
     });
     return { enqueued: `publish-apparel:${body.productId}` };

@@ -176,7 +176,7 @@ export class PublishingService {
    *  do tamanho — sem match, aquele SKU bloqueia (nunca chuta guia). Idempotente por
    *  listing (productId, variationId): irmão já criado não recria. Erro num SKU não trava
    *  os demais — cada listing carrega seu próprio status/last_error. */
-  async publishApparelProduct(productId: string): Promise<{ created: string[]; skipped: string[]; failed: { sku: string; error: string }[] }> {
+  async publishApparelProduct(productId: string, sleeveType?: string): Promise<{ created: string[]; skipped: string[]; failed: { sku: string; error: string }[] }> {
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: productId },
       include: { variations: true },
@@ -190,6 +190,7 @@ export class PublishingService {
       brand: product.brand,
       gender: product.gender,
       moovinType: product.moovinType,
+      sleeveType,
     });
     const chart = await this.sizeGrid.ensureChart({
       domainId: resolved.domainId,

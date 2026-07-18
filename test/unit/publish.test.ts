@@ -114,6 +114,13 @@ describe('apparel (items irmãos + size grid)', () => {
     expect(() => rowIdForSize(rows, '42')).toThrow(ValidationError);
   });
 
+  it('sleeveFromTitle: só quando o título diz', async () => {
+    const { sleeveFromTitle } = await import('../../src/modules/publishing/apparel');
+    expect(sleeveFromTitle('CAMISETA X MANGA LONGA')).toBe('Longa');
+    expect(sleeveFromTitle('BLUSA Y REGATA')).toBe('Sem mangas');
+    expect(sleeveFromTitle('POLO Z PIQUET')).toBeNull();
+  });
+
   it('cache com linhas de 2 guias (nominal+numeração): row id embute o chart certo', async () => {
     const { rowIdForSize } = await import('../../src/modules/publishing/apparel');
     const mixed = [...rows, { id: '4539158:3', attributes: [{ id: 'SIZE', values: [{ name: '40' }] }] }];

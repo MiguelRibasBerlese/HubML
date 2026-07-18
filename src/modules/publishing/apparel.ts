@@ -17,6 +17,14 @@ export interface ApparelMapEntry {
 }
 export const APPAREL_MAP: Record<string, ApparelMapEntry> = {
   VESTIDO: { queryPhrase: 'vestido feminino', expectedDomain: 'DRESSES' },
+  BLUSA: { queryPhrase: 'blusa feminina', expectedDomain: 'BLOUSES' },
+  CAMISETA: { queryPhrase: 'camiseta', expectedDomain: 'T_SHIRTS' },
+  // POLO usa query de camiseta de propósito: no ML polos moram em T_SHIRTS (MLB31447 tem
+  // GARMENT_TYPE "Camisa polo"; o polo Richards ativo do time está lá) — query com "polo"
+  // cai em SPORT_T_SHIRTS, que o guarda-corpo bloqueia (visto real 2026-07-18).
+  POLO: { queryPhrase: 'camiseta', expectedDomain: 'T_SHIRTS' },
+  // CAMISA (domínio SHIRTS) fica FORA de propósito: a conta não tem nenhum guia de SHIRTS
+  // e criar do zero exige medida corporal real que a Moovin não tem (2026-07-18).
 };
 
 /** Linhas do chart como vêm do `/catalog/charts/search` (persistidas em size_grid_chart.rows). */
@@ -43,6 +51,24 @@ export interface ApparelProductInput {
   brand: string | null;
   gender: string | null;
   moovinType: string | null;
+  /** SLEEVE_TYPE verificado por humano/foto quando o título não diz (ex. 'Curta'). */
+  sleeveType?: string | null;
+}
+
+/** GARMENT_TYPE por TIPO da Moovin — dado real da planilha, não inferência. */
+const GARMENT_BY_TYPE: Record<string, string> = {
+  CAMISETA: 'Camiseta',
+  POLO: 'Camisa polo', // valor real da lista de GARMENT_TYPE em T_SHIRTS (gabarito MLB4502679287)
+  BLUSA: 'Blusa',
+};
+
+/** SLEEVE_TYPE só quando o título DIZ (parsing, não chute). Sem menção → null. */
+export function sleeveFromTitle(title: string): string | null {
+  const t = title.toUpperCase();
+  if (/\bMANGA LONGA\b|\bML\b/.test(t)) return 'Longa';
+  if (/\bMANGA CURTA\b|\bMC\b/.test(t)) return 'Curta';
+  if (/\bREGATA\b|\bSEM MANGA/.test(t)) return 'Sem mangas';
+  return null;
 }
 export interface ApparelVariationInput {
   sku: string;
@@ -88,12 +114,34 @@ export async function resolveApparel(ml: MlApi, p: ApparelProductInput): Promise
     throw new ValidationError(`GENDER "${p.gender}" sem value_id na categoria ${suggestion.categoryId} — bloqueado`, 'GENDER');
   }
 
+  const baseAttributes: ItemAttribute[] = [brandAttr, { id: 'MODEL', value_name: modelFrom(p) }, genderAttr];
+
+  // Obrigatórios extras por categoria (achado 2026-07-18: BLOUSES exige SLEEVE_TYPE;
+  // T_SHIRTS exige GARMENT_TYPE+SLEEVE_TYPE — DRESSES não exige nenhum dos dois).
+  const garmentDef = defs.find((d) => d.id === 'GARMENT_TYPE' && d.tags?.required);
+  if (garmentDef) {
+    const garment = p.moovinType ? GARMENT_BY_TYPE[p.moovinType] : undefined;
+    if (!garment) throw new ValidationError(`GARMENT_TYPE exigido mas TIPO "${p.moovinType}" sem mapeamento — bloqueado`, 'GARMENT_TYPE');
+    baseAttributes.push(resolveOpen(garmentDef, garment, 'TIPO'));
+  }
+  const sleeveDef = defs.find((d) => d.id === 'SLEEVE_TYPE' && d.tags?.required);
+  if (sleeveDef) {
+    const sleeve = p.sleeveType ?? sleeveFromTitle(p.title);
+    if (!sleeve) {
+      throw new ValidationError(
+        `SLEEVE_TYPE exigido mas sem fonte real (título sem menção e sem verificação por foto) — bloqueado`,
+        'SLEEVE_TYPE',
+      );
+    }
+    baseAttributes.push(resolveOpen(sleeveDef, sleeve, p.sleeveType ? 'verificação por foto' : 'título'));
+  }
+
   return {
     categoryId: suggestion.categoryId,
     domainId: suggestion.domainId,
     genderValueId: genderAttr.value_id,
     genderName: genderAttr.value_name ?? p.gender,
-    baseAttributes: [brandAttr, { id: 'MODEL', value_name: modelFrom(p) }, genderAttr],
+    baseAttributes,
   };
 }
 

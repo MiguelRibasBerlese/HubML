@@ -905,16 +905,46 @@ que não olhou, e nenhum é bug de código: (1) GTIN=SKU (duplicado), (2) tamanh
 de R$1.199. Todos custam venda ou dinheiro; todos são dado errado que "parece
 preenchido" — pior que dado ausente.
 
+**TOPS RODADOS (2026-07-18, "tenta os outros tipos de vestuário"): +113
+anúncios — BLUSA/FARM 29, CAMISETA/RICHARDS 46, POLO/RICHARDS 38, total do
+hub 292.** Como:
+
+- **Evidência primeiro:** inspecionei os items ativos da conta — o time usa
+  `5170097` "BLUSAS FARM" (BLOUSES), `4977679` "ROUPAS MASCULINO"
+  (T_SHIRTS, SIZE 1-5) pra Richards, `5163260` "Camisetas Sem gênero" pra
+  Levi's, `4669104` pra Top CK fem. FARM acha por nome; RICHARDS foi
+  semeado no cache (4977679 — Richards usa tamanho 1-5 que casa direto).
+- **T_SHIRTS/BLOUSES exigem SLEEVE_TYPE (+GARMENT_TYPE em T_SHIRTS)** —
+  required por categoria, DRESSES não exige. GARMENT_TYPE sai do TIPO
+  (CAMISETA→"Camiseta", POLO→"Camisa polo" — valor real da lista, gabarito
+  MLB4502679287); SLEEVE_TYPE: título quando diz (`sleeveFromTitle`), senão
+  **verificação por FOTO uma a uma** (41 produtos vistos; tudo Curta menos
+  blusas FARM variadas: Sem mangas/Longa) passada via
+  `publish-apparel {sleeveType}` — sem fonte real, bloqueia.
+- **POLO usa queryPhrase 'camiseta' de propósito**: polos moram em T_SHIRTS
+  no ML (GARMENT_TYPE "Camisa polo" em MLB31447; polo Richards ativo lá);
+  query com "polo" cai em SPORT_T_SHIRTS e o guarda-corpo bloqueia (visto
+  real: 13 polos bloqueados até o ajuste).
+- **Recaída do bug de build velho:** 3 rebuilds sem restart → 44 jobs
+  falharam com "TIPO não está no mapa". Regra: **todo rebuild = restart
+  imediato do processo.**
+
+Bloqueados com causa real (decisão do Miguel): LEVIS (guia é "Sem gênero",
+Moovin diz MASCULINO — conflito); CK/LACOSTE/FOXTON/COLCCI-blusa/MARIA FILÓ
+(sem guia com evidência de uso); CAMISAS (SHIRTS tem 0 guias na conta);
+LILICA (mapa gênero infantil); "BLUSA RICHARDS NARA" (título diz RICHARDS,
+MARCA diz FARM — conflito de dado); POLO PIQUET LISA ML (produto sem foto).
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
-**179 anúncios ativos no ML, todos publicados pelo hub, todos confirmados
-`active` com fotos ok:** 118 vestidos FARM + 59 vestidos COLCCI (51 nominais
-chart 4537790 + 8 numeração chart 4539158) + 2 bolsas LUZ DA LUA (catalog
-listing). 1 único SKU bloqueado (FARM `"P (3)"` — dado de origem). 59/59
-testes verdes. Commits: dd67f4d → 0cbe28d. Pendências pro Miguel: óculos
+**292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM
++ 59 vestidos COLCCI (nominais 4537790 + numeração 4539158) + 113 tops (29
+blusas FARM, 46 camisetas + 38 polos RICHARDS) + 2 bolsas LUZ DA LUA
+(catalog listing). 60/60 testes verdes. Pendências pro Miguel: óculos
 BRAND=OUTROS (só remove pela tela), MONTENAPOLEONE AMÊNDOA (sem GTIN nem
-catálogo na cor), infantil (mapa de gênero), marcas gateadas
-(LACOSTE/CK/SCHUTZ/KIPLING — autorização de conta).
+catálogo na cor), LEVIS (conflito gênero do guia), CK/LACOSTE/FOXTON (sem
+guia com evidência), CAMISAS (0 guias em SHIRTS), infantil (mapa de gênero),
+marcas gateadas (autorização de conta).
 
 ## Comandos
 
