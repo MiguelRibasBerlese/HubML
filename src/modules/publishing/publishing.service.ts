@@ -176,7 +176,9 @@ export class PublishingService {
    *  do tamanho — sem match, aquele SKU bloqueia (nunca chuta guia). Idempotente por
    *  listing (productId, variationId): irmão já criado não recria. Erro num SKU não trava
    *  os demais — cada listing carrega seu próprio status/last_error. */
-  async publishApparelProduct(productId: string, sleeveType?: string): Promise<{ created: string[]; skipped: string[]; failed: { sku: string; error: string }[] }> {
+  /** `familyNameOverride`: ajuste pontual do nome enviado ao ML (ex. falso positivo
+   *  invalid.title.gender com "BEBE" = cor azul bebê) — o título real do hub não muda. */
+  async publishApparelProduct(productId: string, sleeveType?: string, familyNameOverride?: string): Promise<{ created: string[]; skipped: string[]; failed: { sku: string; error: string }[] }> {
     const product = await this.prisma.product.findUniqueOrThrow({
       where: { id: productId },
       include: { variations: true },
@@ -223,7 +225,7 @@ export class PublishingService {
         const rowId = rowIdForSize(rows, v.size ?? '');
         const chartIdForItem = rowId.split(':')[0] ?? chart.chartId;
         const payload = buildApparelItemPayload(resolved, v, {
-          familyName: clampFamilyName(product.title),
+          familyName: clampFamilyName(familyNameOverride ?? product.title),
           chartId: chartIdForItem,
           rowId,
           pictures: picturesFrom(product.imageUrl),
