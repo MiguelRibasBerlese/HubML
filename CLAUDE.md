@@ -872,6 +872,15 @@ listing, dado a corrigir na origem. Muitos itens ficam alguns minutos em
 foto do ML puxando da Moovin) — converte pra `active` sozinho, foi assim
 com os 3 primeiros.
 
+**NUMÉRICOS COLCCI RESOLVIDOS (2026-07-18, "faz o mesmo com o chart 4539158
+pros numéricos"):** achado que destravou sem redesign — **o row id embute o
+chart** (`4539158:3`), então o cache pode **unir as linhas dos dois guias**
+(nominal 4537790 + numeração 4539158) na mesma linha de cache, e o
+`SIZE_GRID_ID` do item sai do prefixo da linha casada, não do `chart_id` do
+cache. Mudança de 3 linhas no `publishApparelProduct` + UPDATE no cache
+(`rows = rows || rows_4539158`). Resultado: **8/8 numéricos criados com
+SIZE_GRID_ID=4539158, COLCCI fechou 59/59 SKUs ativos**. 59/59 testes.
+
 **COLCCI DESTRAVADO E RODADO (2026-07-18, pedido do Miguel "tenta o mesmo
 caminho pros vestidos COLCCI"):** o "lookup manual de chart_id" pendente
 virou **uma linha semeada no cache `size_grid_chart`** (COLCCI→`4537790`,

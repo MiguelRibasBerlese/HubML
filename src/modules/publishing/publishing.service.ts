@@ -216,16 +216,21 @@ export class PublishingService {
         continue;
       }
       try {
+        // O row id embute o chart ("4539158:2") — por isso o cache pode unir linhas de
+        // dois guias da mesma marca (nominal PP-GG + numeração 36-44) e o SIZE_GRID_ID
+        // certo sai da linha casada, não do chartId da linha de cache (2026-07-18, COLCCI).
+        const rowId = rowIdForSize(rows, v.size ?? '');
+        const chartIdForItem = rowId.split(':')[0] ?? chart.chartId;
         const payload = buildApparelItemPayload(resolved, v, {
           familyName: product.title,
-          chartId: chart.chartId,
-          rowId: rowIdForSize(rows, v.size ?? ''),
+          chartId: chartIdForItem,
+          rowId,
           pictures: picturesFrom(product.imageUrl),
         });
         const item = await this.ml.createItem(payload);
         await this.prisma.listing.update({
           where: { id: listing.id },
-          data: { mlItemId: item.id, sizeGridId: chart.chartId, status: 'active', lastError: Prisma.DbNull, lastSyncedAt: new Date() },
+          data: { mlItemId: item.id, sizeGridId: chartIdForItem, status: 'active', lastError: Prisma.DbNull, lastSyncedAt: new Date() },
         });
         this.log.info({ productId, sku: v.sku, mlItemId: item.id }, 'irmão criado');
         created.push(item.id);

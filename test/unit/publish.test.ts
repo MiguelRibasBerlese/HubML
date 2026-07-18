@@ -114,6 +114,13 @@ describe('apparel (items irmãos + size grid)', () => {
     expect(() => rowIdForSize(rows, '42')).toThrow(ValidationError);
   });
 
+  it('cache com linhas de 2 guias (nominal+numeração): row id embute o chart certo', async () => {
+    const { rowIdForSize } = await import('../../src/modules/publishing/apparel');
+    const mixed = [...rows, { id: '4539158:3', attributes: [{ id: 'SIZE', values: [{ name: '40' }] }] }];
+    expect(rowIdForSize(mixed, 'PP')).toBe('5170265:1');
+    expect(rowIdForSize(mixed, '40')).toBe('4539158:3');
+  });
+
   it('payload do irmão: family_name + SIZE/COLOR/GRID no item, sem variations', async () => {
     const { buildApparelItemPayload } = await import('../../src/modules/publishing/apparel');
     const p = buildApparelItemPayload(
