@@ -956,6 +956,20 @@ segue bloqueada (guia é Masculino — mesmo conflito de gênero do caso LEVIS);
 CK camisas (tamanhos mistos 2-6 + colarinho 38/40) e FOXTON (P-XGG,
 precisaria match por FILTRABLE_SIZE) pendentes de decisão/extensão.
 
+**FOXTON RODADO (2026-07-18, "faz o FOXTON com o match por FILTRABLE_SIZE"):
++48 anúncios (22 camisas + 26 camisetas), total 388.** O caminho pedido
+(match por FILTRABLE_SIZE) foi implementado, testado REAL e **reprovado pelo
+ML**: `invalid.fashion_grid.size.values` — o SIZE do item TEM que ser igual
+ao label SIZE da linha do guia; equivalência não vale pra isso. Fallback
+revertido (rowIdForSize é SIZE-only de novo, com teste cravando o achado).
+Solução que funcionou: **guias novos com SIZE em letras** — `6136504`
+"CAMISETAS MASCULINO P-GG" (T_SHIRTS) e `6136506` "CAMISAS MASCULINO P-GG"
+(SHIRTS), clonando as MESMAS medidas reais do 4977679 relabeladas pela
+equivalência oficial da própria linha (PP=90cm ... GG=120cm — etiqueta real
+da peça + medida real do time). 2 SKUs XGG bloqueados (nenhum guia da conta
+tem medida de XGG — sem fonte real). 4 guias criados pelo hub até agora:
+6558327, 6136504, 6136506 (+ reusos 5170265/4537790/4539158/4977679/5170097).
+
 ## Placar da madrugada 2026-07-18 (fechamento)
 
 **292 anúncios ativos no ML, todos publicados pelo hub:** 118 vestidos FARM

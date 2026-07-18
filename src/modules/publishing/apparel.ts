@@ -35,12 +35,14 @@ interface ChartRow {
   attributes?: { id: string; values?: { name?: string | null }[] }[];
 }
 
-/** row_id da linha cujo SIZE casa com o tamanho real da variação. Sem match → bloqueia
- *  (guia de tamanho errada é exatamente o erro que originou este projeto). */
+/** row_id da linha cujo SIZE casa com o tamanho real da variação. SÓ SIZE: o ML exige que
+ *  o SIZE do item seja igual ao label SIZE da linha (match por FILTRABLE_SIZE foi testado
+ *  real e reprovado com invalid.fashion_grid.size.values — 2026-07-18, FOXTON; marca com
+ *  rótulo diferente do guia precisa de guia com os labels dela). Sem match → bloqueia. */
 export function rowIdForSize(rows: unknown[], size: string): string {
   for (const row of rows as ChartRow[]) {
-    const rowSize = row.attributes?.find((a) => a.id === 'SIZE')?.values?.[0]?.name;
-    if (rowSize && sameName(rowSize, size)) return String(row.id);
+    const label = row.attributes?.find((a) => a.id === 'SIZE')?.values?.[0]?.name;
+    if (label && sameName(label, size)) return String(row.id);
   }
   throw new ValidationError(`tamanho "${size}" não tem linha no guia (linhas: ${(rows as ChartRow[])
     .map((r) => r.attributes?.find((a) => a.id === 'SIZE')?.values?.[0]?.name)

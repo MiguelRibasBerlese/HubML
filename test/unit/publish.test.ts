@@ -114,6 +114,15 @@ describe('apparel (items irmãos + size grid)', () => {
     expect(() => rowIdForSize(rows, '42')).toThrow(ValidationError);
   });
 
+  it('NÃO casa por FILTRABLE_SIZE (ML exige item SIZE = label SIZE da linha — visto real)', async () => {
+    const { rowIdForSize } = await import('../../src/modules/publishing/apparel');
+    const grid = [
+      { id: '6558327:2', attributes: [{ id: 'SIZE', values: [{ name: '2' }] }, { id: 'FILTRABLE_SIZE', values: [{ name: 'P' }] }] },
+    ];
+    expect(() => rowIdForSize(grid, 'P')).toThrow(ValidationError);
+    expect(rowIdForSize(grid, '2')).toBe('6558327:2');
+  });
+
   it('sleeveFromTitle: só quando o título diz', async () => {
     const { sleeveFromTitle } = await import('../../src/modules/publishing/apparel');
     expect(sleeveFromTitle('CAMISETA X MANGA LONGA')).toBe('Longa');
