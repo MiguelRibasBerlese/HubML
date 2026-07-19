@@ -1026,7 +1026,10 @@ feminina única (revendas divergem entre si: busto PP de 82 a 88cm conforme
 a loja — inutilizável); (b) richards.com.br e mariafilo.com.br têm "Guia de
 medidas" nas páginas de produto mas **bloqueiam fetch automatizado** (404
 pra bot); (c) extensão Claude-in-Chrome não estava conectada pra ler pelo
-navegador real. **Caminho pronto pra quando o Miguel acordar:** abrir no
+navegador real. **Vias remotas esgotadas (2026-07-19):** curl com UA de
+navegador chega nas páginas (Richards 200), mas os guias são renderizados
+client-side (SPA — zero medida no HTML); APIs VTEX não expostas; Wayback
+sem snapshot de guia desses domínios. **Único caminho restante:** abrir no
 navegador o guia de medidas feminino de richards.com.br / mariafilo.com.br
 / calvinklein.com.br (qualquer página de produto feminino → "Guia de
 medidas"), me passar os números (busto cm por tamanho) — com isso o
